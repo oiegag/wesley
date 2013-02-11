@@ -1,0 +1,17 @@
+body {
+    background: #ffffff;
+    text-align:center;
+}
+
+h1 {
+    font-family: 'Times New Roman';
+    font-size: 36px;
+    color: black;
+    text-align:center;
+}
+
+div.center {
+    width:70%;
+    margin-left:15%;
+    margin-right:15%;
+}
