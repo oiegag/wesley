@@ -7,6 +7,7 @@ var COL_MAN = 1;
 var COL_NEG = 2;
 var FILL_MAN = '#ff0';
 var FILL_NEG = '#660';
+var FILL_PRE = '#110'; // preview column color
 var PI = Math.PI;
 var PKEYS = { // keys to prevent default event on
     38:'up',40:'dn', 39:'rt', 37:'lt',32:'sp'
@@ -59,8 +60,8 @@ var Sprite = function(src) {
 };
 
 var Board = function () {
-    this.ncols = 31;
-    this.nrows = 20;
+    this.ncols = 22;
+    this.nrows = 15;
     this.rstart = .1; // fraction of outer radius to start board
     this.dtheta = 2*PI/this.ncols;
     this.rs = [];
@@ -77,7 +78,27 @@ var Board = function () {
 	    this[i][j] = 0;
 	}
     }
+    this.buildtypes();
 };
+
+Board.prototype.buildtypes = function () {
+    this.types = [];
+    for (var i = 0 ; i < this.pics.length ; i++) {
+	var thisone = [];
+	for (j = 0 ; j < 3 ; j++) {
+	    for (k = 0 ; k < 3 ; k++) {
+		if (this.pics[i][j][k] == '*') {
+		    thisone.push([j-1,k-1]);
+		}
+	    }
+	}
+	if (thisone.length > 0) {
+	    this.types.push(thisone);
+	}
+    }
+};
+
+
 Board.prototype.show = function () {
     for (var i = this.nrows-1 ; i >= 0 ; i--) {
 	line = '';
@@ -197,12 +218,28 @@ Board.prototype.draw_box = function (i,j,fill) {
     ctx.fill();
     ctx.stroke();
 };
-Board.prototype.types = [
-    [[-1,0],[0,-1],[0,0],[0,1],[1,-1],[1,0],[1,1]], // club
-    [[-1,0],[0,-1],[0,0],[0,1],[1,-1],[1,1]], // cup
-    [[-1,0],[0,0],[1,0]], // sword
-    [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]] // denier
+Board.prototype.pics = [
+    ['.*.',
+     '.*.',
+     '***'],
+
+    ['*.*',
+     '***',
+     '.*.'],
+
+    ['.*.',
+     '.*.',
+     '.*.'],
+
+    ['.*.',
+     '***',
+     '.*.'],
+
+    ['***',
+     '*.*',
+     '*.*'],
 ];
+    
 Board.prototype.draw_piece = function (r,t,type,rot,color) {
     for (var i in this.types[type]) {
 	var offr = this.types[type][i][0], offt = this.types[type][i][1]; // original offsets
@@ -225,6 +262,24 @@ Board.prototype.rotate = function (off) {
 	}
     }
 };
+Board.prototype.feast = function () {
+    // remove bottom rows
+    var delrows = 0;
+    for (var i = 0 ; i < board.nrows ; i++) {
+	for (var j = 0 ; j < board.ncols && board[i][j] == COL_MAN; j++);
+	if (j == board.ncols) {
+	    delrows++;
+	} else {
+	    break;
+	}
+    }
+    for (var i = 0 ; i < board.nrows-delrows ; i++) {
+	for (var j = 0 ; j < board.ncols ; j++) {
+	    board[i][j] = board[i+delrows][j];
+	}
+    }
+};
+
 Board.prototype.jettison = function () {
     // all negatives with nothing above them are jettisoned off
     var foundcorona = false;
@@ -260,6 +315,20 @@ ActivePiece.prototype.fall = function () {
     this.i = this.i+1;
     board.setto(this,this.color);
 };
+ActivePiece.prototype.draw_column = function () {
+    // draw preview column
+    ctx.fillStyle = FILL_PRE;
+    ctx.beginPath();
+    ctx.arc(cvs.ox,cvs.oy,board.r(0)*cvs.width/2,board.t(this.j-1),board.t(this.j+2));
+    ctx.lineTo(Math.round(cvs.ox + board.r(board.nrows-1)*cvs.width/2*Math.cos(board.t(this.j+2))),
+	       Math.round(cvs.oy + board.r(board.nrows-1)*cvs.width/2*Math.sin(board.t(this.j+2))));
+    ctx.arc(cvs.ox,cvs.oy,board.r(board.nrows-1)*cvs.width/2,board.t(this.j+1),board.t(this.j-1), true);    
+    ctx.lineTo(Math.round(cvs.ox + board.r(0)*cvs.width/2*Math.cos(board.t(this.j-1))),
+	       Math.round(cvs.oy + board.r(0)*cvs.width/2*Math.sin(board.t(this.j-1))));
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+};
 ActivePiece.prototype.render = function () {
     if (this.color == COL_MAN) {
 	var color = FILL_MAN;
@@ -269,7 +338,7 @@ ActivePiece.prototype.render = function () {
     board.draw_piece(this.i, this.j, this.type, this.rot, color);
 };
 ActivePiece.prototype.rotate = function () {
-    this.rot = this.rot += PI/2;
+    this.rot = this.rot -= PI/2;
     if (Math.abs(this.rot - 2*PI) < 1e-3) {
 	this.rot = 0;
     }
@@ -315,6 +384,7 @@ Level.prototype.render = function() {
     if(bg.ready) {
 	ctx.drawImage(bg.image,0,0);
     }
+    piece.draw_column();
     board.render();
     piece.render();
 };
@@ -361,13 +431,15 @@ fallwait = function () {
 	}
 	piece.fall();
 	board.jettison();
+	board.feast();
 	piece = new ActivePiece(lvl.color);
     }
     if (input.dirs[DIR_UP]) {
 	piece.rotate();
     }
-    if (KEY.en in input.keyEvent) {
+    if (KEY.sp in input.keyEvent || KEY.en in input.keyEvent) {
 	lvl.switch_color();
+	delete input.keyEvent[KEY.sp];
 	delete input.keyEvent[KEY.en];
     }
     
