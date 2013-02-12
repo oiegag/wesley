@@ -78,26 +78,7 @@ var Board = function () {
 	    this[i][j] = 0;
 	}
     }
-    this.buildtypes();
 };
-
-Board.prototype.buildtypes = function () {
-    this.types = [];
-    for (var i = 0 ; i < this.pics.length ; i++) {
-	var thisone = [];
-	for (j = 0 ; j < 3 ; j++) {
-	    for (k = 0 ; k < 3 ; k++) {
-		if (this.pics[i][j][k] == '*') {
-		    thisone.push([j-1,k-1]);
-		}
-	    }
-	}
-	if (thisone.length > 0) {
-	    this.types.push(thisone);
-	}
-    }
-};
-
 
 Board.prototype.show = function () {
     for (var i = this.nrows-1 ; i >= 0 ; i--) {
@@ -121,26 +102,20 @@ Board.prototype.place = function (piece) {
     }
 };
 Board.prototype.setto = function (piece,val) {
-    for (var i = 0 ; i < this.types[piece.type].length ; i++) {
-	var oi = this.types[piece.type][i][0];
-	var oj = this.types[piece.type][i][1];
-	var noi = Math.round(Math.cos(piece.rot))*oi + Math.round(Math.sin(piece.rot))*oj;
-	var noj = -Math.round(Math.sin(piece.rot))*oi + Math.round(Math.cos(piece.rot))*oj;
+    var offsets = piece.get_offsets();
 
-	ni = piece.i + Math.round(noi);
-	nj = realMod(piece.j + Math.round(noj),this.ncols);
+    for (var i = 0 ; i < offsets.length ; i++) {
+	ni = piece.i + offsets[i][0];
+	nj = realMod(piece.j + offsets[i][1],this.ncols);
 	board[ni][nj] = val;
     }
 };
 Board.prototype.check = function (piece) {
-    for (var i = 0 ; i < this.types[piece.type].length ; i++) {
-	var oi = this.types[piece.type][i][0];
-	var oj = this.types[piece.type][i][1];
-	var noi = Math.round(Math.cos(piece.rot))*oi + Math.round(Math.sin(piece.rot))*oj;
-	var noj = -Math.round(Math.sin(piece.rot))*oi + Math.round(Math.cos(piece.rot))*oj;
+    var offsets = piece.get_offsets();
 
-	ni = piece.i + Math.round(noi);
-	nj = realMod(piece.j + Math.round(noj),this.ncols);
+    for (var i = 0 ; i < offsets.length ; i++) {
+	ni = piece.i + offsets[i][0];
+	nj = realMod(piece.j + offsets[i][1],this.ncols);
 	if (ni < 0 || ni >= this.nrows || (board[ni][nj] == piece.color)) {
 	    return false;
 	}
@@ -152,7 +127,7 @@ Board.prototype.render = function () {
     for (var i = 0 ; i < this.nrows ; i++) {
 	for (var j = 0 ; j < this.ncols ; j++) {
 	    if (board[i][j] == COL_MAN) {
-		this.draw_box(i,j,FILL_MAN);
+		this.draw_box(i,j,pat);
 	    } else if (board[i][j] == COL_NEG) {
 		this.draw_box(i,j,FILL_NEG);
 	    }
@@ -218,36 +193,6 @@ Board.prototype.draw_box = function (i,j,fill) {
     ctx.fill();
     ctx.stroke();
 };
-Board.prototype.pics = [
-    ['.*.',
-     '.*.',
-     '***'],
-
-    ['*.*',
-     '***',
-     '.*.'],
-
-    ['.*.',
-     '.*.',
-     '.*.'],
-
-    ['.*.',
-     '***',
-     '.*.'],
-
-    ['***',
-     '*.*',
-     '*.*'],
-];
-    
-Board.prototype.draw_piece = function (r,t,type,rot,color) {
-    for (var i in this.types[type]) {
-	var offr = this.types[type][i][0], offt = this.types[type][i][1]; // original offsets
-	var noffr = Math.round(Math.cos(rot))*offr + Math.round(Math.sin(rot))*offt;
-	var nofft = -Math.round(Math.sin(rot))*offr + Math.round(Math.cos(rot))*offt;
-	this.draw_box(r+noffr,t+nofft,color);
-    }
-};
 Board.prototype.rotate = function (off) {
     newboard = [];
     for (var i = 0 ; i < board.nrows ; i++) {
@@ -298,7 +243,7 @@ Board.prototype.jettison = function () {
 var ActivePiece = function (color) {
     this.i = board.nrows-3; // one below the last
     this.j = -Math.round(board.ncols/4);
-    this.type = randN(board.types.length);
+    this.type = randN(ActivePiece.prototype.pics.length);
     this.rot = 0;
     this.color = color;
     if (board.check(this)) {
@@ -317,14 +262,19 @@ ActivePiece.prototype.fall = function () {
 };
 ActivePiece.prototype.draw_column = function () {
     // draw preview column
+    var offsets = this.get_offsets();
+
+    var thetas = offsets.map(function (x) {return x[1];});
+    var ltheta = Math.min.apply(null,thetas), utheta = Math.max.apply(null,thetas);
+    
     ctx.fillStyle = FILL_PRE;
     ctx.beginPath();
-    ctx.arc(cvs.ox,cvs.oy,board.r(0)*cvs.width/2,board.t(this.j-1),board.t(this.j+2));
-    ctx.lineTo(Math.round(cvs.ox + board.r(board.nrows-1)*cvs.width/2*Math.cos(board.t(this.j+2))),
-	       Math.round(cvs.oy + board.r(board.nrows-1)*cvs.width/2*Math.sin(board.t(this.j+2))));
-    ctx.arc(cvs.ox,cvs.oy,board.r(board.nrows-1)*cvs.width/2,board.t(this.j+1),board.t(this.j-1), true);    
-    ctx.lineTo(Math.round(cvs.ox + board.r(0)*cvs.width/2*Math.cos(board.t(this.j-1))),
-	       Math.round(cvs.oy + board.r(0)*cvs.width/2*Math.sin(board.t(this.j-1))));
+    ctx.arc(cvs.ox,cvs.oy,board.r(0)*cvs.width/2,board.t(this.j+ltheta),board.t(this.j+utheta+1));
+    ctx.lineTo(Math.round(cvs.ox + board.r(board.nrows-1)*cvs.width/2*Math.cos(board.t(this.j+utheta+1))),
+	       Math.round(cvs.oy + board.r(board.nrows-1)*cvs.width/2*Math.sin(board.t(this.j+utheta+1))));
+    ctx.arc(cvs.ox,cvs.oy,board.r(board.nrows-1)*cvs.width/2,board.t(this.j+1),board.t(this.j+ltheta), true);    
+    ctx.lineTo(Math.round(cvs.ox + board.r(0)*cvs.width/2*Math.cos(board.t(this.j+ltheta))),
+	       Math.round(cvs.oy + board.r(0)*cvs.width/2*Math.sin(board.t(this.j+ltheta))));
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
@@ -335,7 +285,7 @@ ActivePiece.prototype.render = function () {
     } else {
 	var color = FILL_NEG;
     }
-    board.draw_piece(this.i, this.j, this.type, this.rot, color);
+    this.draw_piece(this.i, this.j, pat);
 };
 ActivePiece.prototype.rotate = function () {
     this.rot = this.rot -= PI/2;
@@ -343,6 +293,64 @@ ActivePiece.prototype.rotate = function () {
 	this.rot = 0;
     }
 };
+ActivePiece.prototype.draw_piece = function (r,t,color) {
+    var offsets = piece.get_offsets();
+    for (var i in offsets) {
+	var noffr = offsets[i][0], nofft = offsets[i][1];
+	board.draw_box(r+noffr,t+nofft,color);
+    }
+};
+ActivePiece.prototype.get_offsets = function () {
+    var out = [];
+    for (var i = 0 ; i < this.types[this.type].length ; i++) {
+	var oi = this.types[this.type][i][0];
+	var oj = this.types[this.type][i][1];
+	var noi = Math.round(Math.cos(this.rot))*oi + Math.round(Math.sin(this.rot))*oj;
+	var noj = -Math.round(Math.sin(this.rot))*oi + Math.round(Math.cos(this.rot))*oj;
+	out.push([Math.round(noi),Math.round(noj)]);
+    }
+    return out;
+};
+
+ActivePiece.buildtypes = function () {
+    this.prototype.types = [];
+    for (var i = 0 ; i < this.prototype.pics.length ; i++) {
+	var thisone = [];
+	for (j = 0 ; j < 3 ; j++) {
+	    for (k = 0 ; k < 3 ; k++) {
+		if (this.prototype.pics[i][j][k] == '*') {
+		    thisone.push([j-1,k-1]);
+		}
+	    }
+	}
+	if (thisone.length > 0) {
+	    this.prototype.types.push(thisone);
+	}
+    }
+};
+
+ActivePiece.prototype.pics = [
+    ['.*.',
+     '.*.',
+     '***'],
+
+    ['*.*',
+     '***',
+     '.*.'],
+
+    ['.*.',
+     '.*.',
+     '.*.'],
+
+    ['.*.',
+     '***',
+     '.*.'],
+
+    ['***',
+     '*.*',
+     '*.*'],
+];
+
 
 var Input = function () {
     this.keyEvent = {};
@@ -377,12 +385,16 @@ Input.prototype.parsedirs = function () {
 
 var Level = function () {
     board = new Board();
+    ActivePiece.buildtypes();
     piece = new ActivePiece(COL_MAN);
     this.color = COL_MAN;
 };
 Level.prototype.render = function() {
-    if(bg.ready) {
-	ctx.drawImage(bg.image,0,0);
+    if(bgs[0].ready) {
+	ctx.drawImage(bgs[0].image,0,0);
+    }
+    if(sprites[0].ready) {
+	ctx.drawImage(sprites[0].image,cvs.ox-sprites[0].image.width/2,cvs.oy-sprites[0].image.height/2);
     }
     piece.draw_column();
     board.render();
@@ -398,7 +410,9 @@ Level.prototype.switch_color = function () {
     }
 };
 
-bg = new Sprite('images/blackbox.png');
+bgs = [new Sprite('images/blackbox.png'), new Sprite('images/corona.png')];
+sprites = [new Sprite('images/sun.png')];
+pat = COL_MAN;
 input = new Input();
 
 addEventListener("keydown", function (e) {
@@ -414,11 +428,13 @@ addEventListener("keyup", function (e) {
     }
 }, false);
 
-
 var lvl = new Level();
 
 fallwait = function () {
     input.parsedirs();
+    if (pat == COL_MAN && bgs[1].ready) {
+	pat = ctx.createPattern(bgs[1].image,"no-repeat");
+    }
     if (input.dirs[DIR_LT]) {
 	board.rotate(-1);
     }
