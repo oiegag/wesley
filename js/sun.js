@@ -281,11 +281,11 @@ ActivePiece.prototype.draw_column = function () {
 };
 ActivePiece.prototype.render = function () {
     if (this.color == COL_MAN) {
-	var color = FILL_MAN;
+	var color = pat;
     } else {
 	var color = FILL_NEG;
     }
-    this.draw_piece(this.i, this.j, pat);
+    this.draw_piece(this.i, this.j, color);
 };
 ActivePiece.prototype.rotate = function () {
     this.rot = this.rot -= PI/2;
@@ -388,13 +388,18 @@ var Level = function () {
     ActivePiece.buildtypes();
     piece = new ActivePiece(COL_MAN);
     this.color = COL_MAN;
+    this.rot = 0;
 };
 Level.prototype.render = function() {
     if(bgs[0].ready) {
 	ctx.drawImage(bgs[0].image,0,0);
     }
     if(sprites[0].ready) {
-	ctx.drawImage(sprites[0].image,cvs.ox-sprites[0].image.width/2,cvs.oy-sprites[0].image.height/2);
+	ctx.save();
+	ctx.translate(cvs.ox,cvs.oy);
+	ctx.rotate(this.rot);
+	ctx.drawImage(sprites[0].image,-sprites[0].image.width/2,-sprites[0].image.height/2);
+	ctx.restore();
     }
     piece.draw_column();
     board.render();
@@ -408,6 +413,10 @@ Level.prototype.switch_color = function () {
 	this.color = COL_MAN;
 	piece.color = COL_MAN;
     }
+};
+Level.prototype.rotate = function (rot) {
+    board.rotate(rot);
+    this.rot -= rot*board.dtheta;
 };
 
 bgs = [new Sprite('images/blackbox.png'), new Sprite('images/corona.png')];
@@ -436,10 +445,10 @@ fallwait = function () {
 	pat = ctx.createPattern(bgs[1].image,"no-repeat");
     }
     if (input.dirs[DIR_LT]) {
-	board.rotate(-1);
+	lvl.rotate(-1);
     }
     if (input.dirs[DIR_RT]) {
-	board.rotate(1);
+	lvl.rotate(1);
     }
     if (input.dirs[DIR_DN]) {
 	if (! board.place(piece)) {
