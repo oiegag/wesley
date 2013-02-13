@@ -2,7 +2,7 @@
 // remove the no javascript warning
 document.getElementById("warning").style.display = "none";
 // constants
-var FRIENDLY = 25;
+var FRIENDLY = 15;
 
 var COL_NON = 0;
 var COL_MAN = 1;
@@ -13,6 +13,8 @@ var FILL_NEG = '#660';
 var FILL_PRE = '#110'; // preview column color
 
 var PI = Math.PI;
+var NCOLS = 22;
+var DTHETA = 2*PI/NCOLS;
 var PKEYS = { // keys to prevent default event on
     38:'up',40:'dn', 39:'rt', 37:'lt',32:'sp'
 };
@@ -64,29 +66,70 @@ var Sprite = function(src) {
     this.image.src = src;
 };
 
-var Pattern = function(src) {
+var Pattern = function(src,sheet,seq) {
+    if (sheet == undefined) {
+	this.sheet = [1,1];
+    } else {
+	this.sheet = sheet;
+    }
+    if (seq == undefined) {
+	this.seq = [];
+	for (var i = 0 ; i < this.sheet[0] ; i++) {
+	    this.seq[i] = i;
+	}
+    } else {
+	this.seq = seq;
+    }
+    this.seqnum = 0;
     this.ready = false;
     this.image = new Image();
     this.image.parent = this;
     this.image.onload = function () {
 	this.parent.ready = true;
+	this.parent.sw = this.width/this.parent.sheet[0];
+	this.parent.sh = this.height/this.parent.sheet[1];
 	this.parent.makePattern();
     };
+    this.pats = [];
     this.image.src = src;
 };
+Pattern.prototype.animate = function () {
+    now = Date.now();
+    if (now - this.last_update > 400) {
+	this.seqnum = realMod(this.seqnum + 1, this.seq.length);
+	this.pat = this.pats[this.seq[this.seqnum]];
+	this.last_update = now;
+    }
+};
 Pattern.prototype.makePattern = function () {
-    this.cvs = document.createElement('canvas');
-    this.cvs.width = this.image.width;
-    this.cvs.height = this.image.height;
-    this.pctx = this.cvs.getContext('2d');
-    this.pctx.fillStyle = FILL_MAN;
-    this.pctx.fillRect(0,0,this.image.width,this.image.height);
-    this.pctx.drawImage(this.image, 0, 0);
-    this.pat = ctx.createPattern(this.cvs,'repeat');
+    this.last_update = Date.now();
+    // all patterns are tiled 1 by n rows by cols
+    for (var k = 0 ; k < this.sheet[0] ; k++) {
+	var pcvs = document.createElement('canvas');
+	pcvs.width = this.image.height*2;
+	pcvs.height = this.image.height*2;
+	var pctx = pcvs.getContext('2d');
+	pctx.fillStyle = FILL_MAN;
+	pctx.fillRect(0,0,pcvs.width,pcvs.height);
+	var pos = [[0,0],[pcvs.width,0],[pcvs.width,pcvs.height],[0,pcvs.height]];
+	// splay the rays around in a pattern centered at the origin
+	for (var i = 0 ; i < 4 ; i++) {
+	    pctx.save();
+	    pctx.translate(pos[i][0],pos[i][1]);
+	    for (var j = 0 ; j < NCOLS ; j++) {
+		pctx.rotate(DTHETA);
+		pctx.drawImage(this.image,k*this.sw,0,this.sw,this.sh,-this.sw/2,-this.sh,
+			       this.sw, this.sh);
+	    }
+	    pctx.restore();
+	}
+	this.pats[k] = ctx.createPattern(pcvs,'repeat');
+    }
+    this.pat = this.pats[0];
 };
 
 var Board = function () {
-    this.ncols = 22;
+    this.ncols = NCOLS;
     this.nrows = 15;
     this.rstart = .1; // fraction of outer radius to start board
     this.dtheta = 2*PI/this.ncols;
@@ -153,7 +196,7 @@ Board.prototype.render = function () {
     for (var i = 0 ; i < this.nrows ; i++) {
 	for (var j = 0 ; j < this.ncols ; j++) {
 	    if (board[i][j] == COL_MAN) {
-		this.draw_box(i,j,pats.currman.pat);
+		this.draw_box(i,j,lvl.manpat.pat);
 	    } else if (board[i][j] == COL_NEG) {
 		this.draw_box(i,j,FILL_NEG);
 	    }
@@ -310,7 +353,7 @@ ActivePiece.prototype.draw_column = function () {
 };
 ActivePiece.prototype.render = function () {
     if (this.color == COL_MAN) {
-	var color = pats.currman.pat;
+	var color = lvl.manpat.pat;
     } else {
 	var color = FILL_NEG;
     }
@@ -418,7 +461,7 @@ var Level = function () {
     piece = new ActivePiece(COL_MAN);
     this.color = COL_MAN;
     this.rot = 0;
-    pats.currman = pats.corona;
+    this.manpat = pats.rays_sun;
 };
 Level.prototype.render = function() {
     ctx.drawImage(imgs.blackbox.image,0,0);
@@ -457,14 +500,25 @@ Game.prototype.callback = function () {
     setTimeout(game.callback,FRIENDLY);
 };
 Game.prototype.loading = function () {
-    var newimgs = ['blackbox','sun'];
-    var newpats = ['corona'];
+    var newimgs = [['blackbox'],['sun']];
+    var newpats = [['rays_sun',[2,1]]];
     var iloaded = this.startloading(newimgs,Sprite,imgs);
     var ploaded = this.startloading(newpats,Pattern,pats);
     if (iloaded == newimgs.length && ploaded == newpats.length) {
 	lvl = new Level();
 	this.state = this.waitcmd;
     }
+};
+Game.prototype.startloading = function (these,constructor,where) {
+    var loaded = 0;
+    for (var i in these) {
+	if (! (these[i][0] in where)) {
+	    where[these[i][0]] = new constructor('images/'+these[i][0]+'.png',these[i][1]);
+	} else if (where[these[i][0]].ready) {
+	    loaded++;
+	}
+    }
+    return loaded;
 };
 Game.prototype.waitcmd = function () {
     input.parsedirs();
@@ -492,18 +546,11 @@ Game.prototype.waitcmd = function () {
 	delete input.keyEvent[KEY.en];
     }
     
-    lvl.render();
-};
-Game.prototype.startloading = function (these,constructor,where) {
-    var loaded = 0;
-    for (var i in these) {
-	if (! (these[i] in where)) {
-	    where[these[i]] = new constructor('images/'+these[i]+'.png');
-	} else if (where[these[i]].ready) {
-	    loaded++;
-	}
+    for (var p in pats) {
+	pats[p].animate();
     }
-    return loaded;
+
+    lvl.render();
 };
 
 imgs = {};
