@@ -2,12 +2,16 @@
 // remove the no javascript warning
 document.getElementById("warning").style.display = "none";
 // constants
+var FRIENDLY = 25;
+
 var COL_NON = 0;
 var COL_MAN = 1;
 var COL_NEG = 2;
+
 var FILL_MAN = '#ff0';
 var FILL_NEG = '#660';
 var FILL_PRE = '#110'; // preview column color
+
 var PI = Math.PI;
 var PKEYS = { // keys to prevent default event on
     38:'up',40:'dn', 39:'rt', 37:'lt',32:'sp'
@@ -23,6 +27,7 @@ var KEY = {
     'q':81,
     'en':13
 };
+
 var DIR_UP = 0;
 var DIR_LT = 1;
 var DIR_RT = 2;
@@ -57,6 +62,27 @@ var Sprite = function(src) {
 	this.parent.ready = true;
     };
     this.image.src = src;
+};
+
+var Pattern = function(src) {
+    this.ready = false;
+    this.image = new Image();
+    this.image.parent = this;
+    this.image.onload = function () {
+	this.parent.ready = true;
+	this.parent.makePattern();
+    };
+    this.image.src = src;
+};
+Pattern.prototype.makePattern = function () {
+    this.cvs = document.createElement('canvas');
+    this.cvs.width = this.image.width;
+    this.cvs.height = this.image.height;
+    this.pctx = this.cvs.getContext('2d');
+    this.pctx.fillStyle = FILL_MAN;
+    this.pctx.fillRect(0,0,this.image.width,this.image.height);
+    this.pctx.drawImage(this.image, 0, 0);
+    this.pat = ctx.createPattern(this.cvs,'repeat');
 };
 
 var Board = function () {
@@ -127,7 +153,7 @@ Board.prototype.render = function () {
     for (var i = 0 ; i < this.nrows ; i++) {
 	for (var j = 0 ; j < this.ncols ; j++) {
 	    if (board[i][j] == COL_MAN) {
-		this.draw_box(i,j,pat);
+		this.draw_box(i,j,pats.currman.pat);
 	    } else if (board[i][j] == COL_NEG) {
 		this.draw_box(i,j,FILL_NEG);
 	    }
@@ -182,16 +208,19 @@ Board.prototype.draw_box = function (i,j,fill) {
     } else {
 	ctx.fillStyle = fill;
     }
+    ctx.save();
+    ctx.translate(cvs.ox,cvs.oy);
     ctx.beginPath();
-    ctx.arc(cvs.ox,cvs.oy,this.r(i)*cvs.width/2,this.t(j),this.t(j+1));
-    ctx.lineTo(Math.round(cvs.ox + this.r(i+1)*cvs.width/2*Math.cos(this.t(j+1))),
-	       Math.round(cvs.oy + this.r(i+1)*cvs.width/2*Math.sin(this.t(j+1))));
-    ctx.arc(cvs.ox,cvs.oy,this.r(i+1)*cvs.width/2,(j+1)*this.dtheta,this.t(j), true);    
-    ctx.lineTo(Math.round(cvs.ox + this.r(i)*cvs.width/2*Math.cos(this.t(j))),
-	       Math.round(cvs.oy + this.r(i)*cvs.width/2*Math.sin(this.t(j))));
+    ctx.arc(0,0,this.r(i)*cvs.width/2,this.t(j),this.t(j+1));
+    ctx.lineTo(Math.round(this.r(i+1)*cvs.width/2*Math.cos(this.t(j+1))),
+	       Math.round(this.r(i+1)*cvs.width/2*Math.sin(this.t(j+1))));
+    ctx.arc(0,0,this.r(i+1)*cvs.width/2,(j+1)*this.dtheta,this.t(j), true);    
+    ctx.lineTo(Math.round(this.r(i)*cvs.width/2*Math.cos(this.t(j))),
+	       Math.round(this.r(i)*cvs.width/2*Math.sin(this.t(j))));
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
 };
 Board.prototype.rotate = function (off) {
     newboard = [];
@@ -281,7 +310,7 @@ ActivePiece.prototype.draw_column = function () {
 };
 ActivePiece.prototype.render = function () {
     if (this.color == COL_MAN) {
-	var color = pat;
+	var color = pats.currman.pat;
     } else {
 	var color = FILL_NEG;
     }
@@ -355,10 +384,10 @@ ActivePiece.prototype.pics = [
 var Input = function () {
     this.keyEvent = {};
     this.dirs = {
-	DIR_UP:false,
-	DIR_DN:false,
-	DIR_RT:false,
-	DIR_LT:false
+	up:false,
+	dn:false,
+	rt:false,
+	lt:false
     };
 };
 Input.prototype.parsedirs = function () {
@@ -372,7 +401,7 @@ Input.prototype.parsedirs = function () {
 	delete this.keyEvent[KEY.lt];
     }
     keys = [KEY.up, KEY.dn, KEY.rt, KEY.lt];
-    dirs = [DIR_UP, DIR_DN, DIR_RT, DIR_LT];
+    dirs = ['up','dn','rt','lt'];
     for (var i in keys) {
 	if (keys[i] in this.keyEvent) {
 	    delete this.keyEvent[keys[i]];
@@ -389,21 +418,21 @@ var Level = function () {
     piece = new ActivePiece(COL_MAN);
     this.color = COL_MAN;
     this.rot = 0;
+    pats.currman = pats.corona;
 };
 Level.prototype.render = function() {
-    if(bgs[0].ready) {
-	ctx.drawImage(bgs[0].image,0,0);
-    }
-    if(sprites[0].ready) {
-	ctx.save();
-	ctx.translate(cvs.ox,cvs.oy);
-	ctx.rotate(this.rot);
-	ctx.drawImage(sprites[0].image,-sprites[0].image.width/2,-sprites[0].image.height/2);
-	ctx.restore();
-    }
+    ctx.drawImage(imgs.blackbox.image,0,0);
+
+    ctx.save();
+    ctx.translate(cvs.ox,cvs.oy);
+    ctx.rotate(this.rot);
+    ctx.drawImage(imgs.sun.image,-imgs.sun.image.width/2,-imgs.sun.image.height/2);
+    ctx.restore();
+
     piece.draw_column();
     board.render();
     piece.render();
+
 };
 Level.prototype.switch_color = function () {
     if (this.color == COL_MAN) {
@@ -419,10 +448,68 @@ Level.prototype.rotate = function (rot) {
     this.rot -= rot*board.dtheta;
 };
 
-bgs = [new Sprite('images/blackbox.png'), new Sprite('images/corona.png')];
-sprites = [new Sprite('images/sun.png')];
-pat = COL_MAN;
+var Game = function () {
+    this.state = this.loading;
+    setTimeout(this.callback,FRIENDLY);
+};
+Game.prototype.callback = function () {
+    game.state.call(game);
+    setTimeout(game.callback,FRIENDLY);
+};
+Game.prototype.loading = function () {
+    var newimgs = ['blackbox','sun'];
+    var newpats = ['corona'];
+    var iloaded = this.startloading(newimgs,Sprite,imgs);
+    var ploaded = this.startloading(newpats,Pattern,pats);
+    if (iloaded == newimgs.length && ploaded == newpats.length) {
+	lvl = new Level();
+	this.state = this.waitcmd;
+    }
+};
+Game.prototype.waitcmd = function () {
+    input.parsedirs();
+    if (input.dirs.lt) {
+	lvl.rotate(-1);
+    }
+    if (input.dirs.rt) {
+	lvl.rotate(1);
+    }
+    if (input.dirs.dn) {
+	if (! board.place(piece)) {
+	    console.log('game over');
+	}
+	piece.fall();
+	board.jettison();
+	board.feast();
+	piece = new ActivePiece(lvl.color);
+    }
+    if (input.dirs.up) {
+	piece.rotate();
+    }
+    if (KEY.sp in input.keyEvent || KEY.en in input.keyEvent) {
+	lvl.switch_color();
+	delete input.keyEvent[KEY.sp];
+	delete input.keyEvent[KEY.en];
+    }
+    
+    lvl.render();
+};
+Game.prototype.startloading = function (these,constructor,where) {
+    var loaded = 0;
+    for (var i in these) {
+	if (! (these[i] in where)) {
+	    where[these[i]] = new constructor('images/'+these[i]+'.png');
+	} else if (where[these[i]].ready) {
+	    loaded++;
+	}
+    }
+    return loaded;
+};
+
+imgs = {};
+pats = {};
 input = new Input();
+lvl = {};
 
 addEventListener("keydown", function (e) {
     input.keyEvent[e.keyCode] = true;
@@ -437,40 +524,4 @@ addEventListener("keyup", function (e) {
     }
 }, false);
 
-var lvl = new Level();
-
-fallwait = function () {
-    input.parsedirs();
-    if (pat == COL_MAN && bgs[1].ready) {
-	pat = ctx.createPattern(bgs[1].image,"no-repeat");
-    }
-    if (input.dirs[DIR_LT]) {
-	lvl.rotate(-1);
-    }
-    if (input.dirs[DIR_RT]) {
-	lvl.rotate(1);
-    }
-    if (input.dirs[DIR_DN]) {
-	if (! board.place(piece)) {
-	    console.log('game over');
-	}
-	piece.fall();
-	board.jettison();
-	board.feast();
-	piece = new ActivePiece(lvl.color);
-    }
-    if (input.dirs[DIR_UP]) {
-	piece.rotate();
-    }
-    if (KEY.sp in input.keyEvent || KEY.en in input.keyEvent) {
-	lvl.switch_color();
-	delete input.keyEvent[KEY.sp];
-	delete input.keyEvent[KEY.en];
-    }
-    
-    lvl.render();
-    setTimeout(fallwait,25);
-};
-
-last_update = Date.now();
-setTimeout(fallwait,25);
+game = new Game();
