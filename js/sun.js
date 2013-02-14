@@ -1,4 +1,3 @@
-
 // remove the no javascript warning
 document.getElementById("warning").style.display = "none";
 // constants
@@ -8,9 +7,11 @@ var COL_NON = 0;
 var COL_MAN = 1;
 var COL_NEG = 2;
 
+var FILL_SKY = '#fff';
+var FILL_BAB = '#ff0';
 var FILL_MAN = '#ff0';
 var FILL_NEG = '#660';
-var FILL_PRE = '#110'; // preview column color
+var FILL_PRE = '#8383f9'; // preview column color
 
 var PI = Math.PI;
 var NCOLS = 22;
@@ -56,14 +57,30 @@ var realMod = function(n,m) {
     return n;
 };
 // classes
-var Sprite = function(src) {
+var Sprite = function(src,origin) {
+    if (origin == undefined) {
+	origin = [0,0];
+    }
     this.ready = false;
     this.image = new Image();
     this.image.parent = this;
+    this.ox = origin[0];
+    this.oy = origin[1];
+    this.rot = 0;
     this.image.onload = function() {
 	this.parent.ready = true;
     };
     this.image.src = src;
+};
+Sprite.prototype.render = function (tilt) {
+    if (tilt == undefined) {
+	tilt = 0;
+    }
+    ctx.save();
+    ctx.translate(this.ox, this.oy);
+    ctx.rotate(this.rot+tilt);
+    ctx.drawImage(this.image,-this.image.width/2,-this.image.height/2);
+    ctx.restore();
 };
 
 var Pattern = function(src,sheet,seq) {
@@ -109,7 +126,7 @@ Pattern.prototype.makePattern = function () {
 	pcvs.width = this.image.height*2;
 	pcvs.height = this.image.height*2;
 	var pctx = pcvs.getContext('2d');
-	pctx.fillStyle = FILL_MAN;
+	pctx.fillStyle = FILL_BAB;
 	pctx.fillRect(0,0,pcvs.width,pcvs.height);
 	var pos = [[0,0],[pcvs.width,0],[pcvs.width,pcvs.height],[0,pcvs.height]];
 	// splay the rays around in a pattern centered at the origin
@@ -191,14 +208,16 @@ Board.prototype.check = function (piece) {
     }
     return true;
 };
-Board.prototype.render = function () {
-    this.drawgrid();
+Board.prototype.render = function (tilt) {
+    if (tilt == undefined) {
+	tilt = 0;
+    }
     for (var i = 0 ; i < this.nrows ; i++) {
 	for (var j = 0 ; j < this.ncols ; j++) {
 	    if (board[i][j] == COL_MAN) {
-		this.draw_box(i,j,lvl.manpat.pat);
+		this.draw_box(i,j,lvl.manpat.pat,tilt);
 	    } else if (board[i][j] == COL_NEG) {
-		this.draw_box(i,j,FILL_NEG);
+		this.draw_box(i,j,FILL_NEG,tilt);
 	    }
 
 	}
@@ -206,7 +225,7 @@ Board.prototype.render = function () {
 };
 Board.prototype.drawgrid = function () {
     ctx.lineWidth = 1.25;
-    ctx.strokeStyle = '#222';
+    ctx.strokeStyle = '#ccc';
 
     for (var r in this.rs) {
 	this.draw_arc(this.rs[r],0,2*PI);
@@ -243,16 +262,21 @@ Board.prototype.r = function (i) {
 Board.prototype.t = function (j) {
     return j*this.dtheta;
 };
-Board.prototype.draw_box = function (i,j,fill) {
-    ctx.lineWidth = 1.25;
+Board.prototype.draw_box = function (i,j,fill,tilt) {
+    ctx.lineWidth = 0.75;
     ctx.strokeStyle = '#000';
     if (fill == undefined) {
-	ctx.fillStyle = FILL_MAN;
+	ctx.fillStyle = FILL_BAB;
     } else {
 	ctx.fillStyle = fill;
     }
+    if (tilt == undefined) {
+	tilt = 0;
+    }
+
     ctx.save();
     ctx.translate(cvs.ox,cvs.oy);
+    ctx.rotate(tilt);
     ctx.beginPath();
     ctx.arc(0,0,this.r(i)*cvs.width/2,this.t(j),this.t(j+1));
     ctx.lineTo(Math.round(this.r(i+1)*cvs.width/2*Math.cos(this.t(j+1))),
@@ -315,49 +339,71 @@ Board.prototype.jettison = function () {
 var ActivePiece = function (color) {
     this.i = board.nrows-3; // one below the last
     this.j = -Math.round(board.ncols/4);
-    this.type = randN(ActivePiece.prototype.pics.length);
+    this.type = this.newpiece();
     this.rot = 0;
     this.color = color;
-    if (board.check(this)) {
-	this.immobile = false;
-    } else {
-	this.immobile = true;
-    }
 };
-ActivePiece.prototype.fall = function () {
-    board.setto(this,COL_NON);
+ActivePiece.prototype.newpiece = function () {
+    var val = Math.random();
+    var sets = [0,0.1,0.325,0.55,0.775,1]; // try to make +'s a little less common
+    for (var i = 0 ; val > sets[i] ; i++);
+    return i-1;
+};
+ActivePiece.prototype.fall_howfar = function () {
+    var orig = this.i, fellto = 0;
     while (board.check(piece)) {
 	this.i = this.i-1;
     }
-    this.i = this.i+1;
-    board.setto(this,this.color);
+    fellto = this.i + 1;
+    this.i = orig;
+    return fellto;
 };
-ActivePiece.prototype.draw_column = function () {
+ActivePiece.prototype.draw_preview = function () {
     // draw preview column
     var offsets = this.get_offsets();
 
-    var thetas = offsets.map(function (x) {return x[1];});
-    var ltheta = Math.min.apply(null,thetas), utheta = Math.max.apply(null,thetas);
-    
+    var lowest = {};
+    for (var i = 0 ; i < offsets.length ; i++) {
+	whatj = offsets[i][1];
+	if (lowest[whatj] == undefined) {
+	    lowest[whatj] = offsets[i][0];
+	} else {
+	    lowest[whatj] = Math.min(lowest[whatj],offsets[i][0]);
+	}
+    }
+
+    for (var j in lowest) {
+	this.draw_column(parseInt(j)+this.j, board.nrows-2+lowest[j]);
+    }
+};
+ActivePiece.prototype.draw_column = function (j,ending) {
     ctx.fillStyle = FILL_PRE;
+    ctx.lineWidth = 0.05;
+    ctx.strokeStyle = FILL_PRE;
+    ctx.globalAlpha = 0.25;
     ctx.beginPath();
-    ctx.arc(cvs.ox,cvs.oy,board.r(0)*cvs.width/2,board.t(this.j+ltheta),board.t(this.j+utheta+1));
-    ctx.lineTo(Math.round(cvs.ox + board.r(board.nrows-1)*cvs.width/2*Math.cos(board.t(this.j+utheta+1))),
-	       Math.round(cvs.oy + board.r(board.nrows-1)*cvs.width/2*Math.sin(board.t(this.j+utheta+1))));
-    ctx.arc(cvs.ox,cvs.oy,board.r(board.nrows-1)*cvs.width/2,board.t(this.j+1),board.t(this.j+ltheta), true);    
-    ctx.lineTo(Math.round(cvs.ox + board.r(0)*cvs.width/2*Math.cos(board.t(this.j+ltheta))),
-	       Math.round(cvs.oy + board.r(0)*cvs.width/2*Math.sin(board.t(this.j+ltheta))));
+
+    ctx.arc(cvs.ox,cvs.oy,board.r(0)*cvs.width/2,board.t(j),board.t(j+1));
+    ctx.lineTo(Math.round(cvs.ox + board.r(ending)*cvs.width/2*Math.cos(board.t(j+1))),
+	       Math.round(cvs.oy + board.r(ending)*cvs.width/2*Math.sin(board.t(j+1))));
+    ctx.arc(cvs.ox,cvs.oy,board.r(ending)*cvs.width/2,board.t(j+1),board.t(j), true);    
+    ctx.lineTo(Math.round(cvs.ox + board.r(0)*cvs.width/2*Math.cos(board.t(j))),
+	       Math.round(cvs.oy + board.r(0)*cvs.width/2*Math.sin(board.t(j))));
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
+    ctx.globalAlpha = 1;
 };
-ActivePiece.prototype.render = function () {
+ActivePiece.prototype.render = function (offset) {
+    if (offset == undefined) {
+	offset = 0;
+    }
     if (this.color == COL_MAN) {
 	var color = lvl.manpat.pat;
     } else {
 	var color = FILL_NEG;
     }
-    this.draw_piece(this.i, this.j, color);
+    this.draw_piece(this.i-offset, this.j, color);
 };
 ActivePiece.prototype.rotate = function () {
     this.rot = this.rot -= PI/2;
@@ -403,6 +449,10 @@ ActivePiece.buildtypes = function () {
 
 ActivePiece.prototype.pics = [
     ['.*.',
+     '***',
+     '.*.'],
+
+    ['.*.',
      '.*.',
      '***'],
 
@@ -414,10 +464,6 @@ ActivePiece.prototype.pics = [
      '.*.',
      '.*.'],
 
-    ['.*.',
-     '***',
-     '.*.'],
-
     ['***',
      '*.*',
      '*.*'],
@@ -426,6 +472,7 @@ ActivePiece.prototype.pics = [
 
 var Input = function () {
     this.keyEvent = {};
+    this.down = {};
     this.dirs = {
 	up:false,
 	dn:false,
@@ -463,19 +510,22 @@ var Level = function () {
     this.rot = 0;
     this.manpat = pats.rays_sun;
 };
-Level.prototype.render = function() {
-    ctx.drawImage(imgs.blackbox.image,0,0);
+Level.prototype.render = function(tilt) {
+    if (tilt == undefined) {
+	tilt = 0;
+    }
 
-    ctx.save();
-    ctx.translate(cvs.ox,cvs.oy);
-    ctx.rotate(this.rot);
-    ctx.drawImage(imgs.sun.image,-imgs.sun.image.width/2,-imgs.sun.image.height/2);
-    ctx.restore();
+    ctx.fillStyle = FILL_SKY;
+    ctx.fillRect(0,0,cvs.width,cvs.height);
 
-    piece.draw_column();
-    board.render();
-    piece.render();
+    board.drawgrid();
 
+    imgs.sky.render();
+    imgs.baby.render(tilt);
+
+    piece.draw_preview();
+    
+    board.render(tilt);
 };
 Level.prototype.switch_color = function () {
     if (this.color == COL_MAN) {
@@ -488,7 +538,7 @@ Level.prototype.switch_color = function () {
 };
 Level.prototype.rotate = function (rot) {
     board.rotate(rot);
-    this.rot -= rot*board.dtheta;
+    imgs.baby.rot -= rot*board.dtheta;
 };
 
 var Game = function () {
@@ -500,8 +550,8 @@ Game.prototype.callback = function () {
     setTimeout(game.callback,FRIENDLY);
 };
 Game.prototype.loading = function () {
-    var newimgs = [['blackbox'],['sun']];
-    var newpats = [['rays_sun',[2,1]]];
+    var newimgs = [['sky',[cvs.width/2,cvs.height/2]],['baby',[cvs.ox,cvs.oy]]];
+    var newpats = [['rays_sun',[1,1]]];
     var iloaded = this.startloading(newimgs,Sprite,imgs);
     var ploaded = this.startloading(newpats,Pattern,pats);
     if (iloaded == newimgs.length && ploaded == newpats.length) {
@@ -520,22 +570,80 @@ Game.prototype.startloading = function (these,constructor,where) {
     }
     return loaded;
 };
-Game.prototype.waitcmd = function () {
-    input.parsedirs();
-    if (input.dirs.lt) {
-	lvl.rotate(-1);
-    }
-    if (input.dirs.rt) {
-	lvl.rotate(1);
-    }
-    if (input.dirs.dn) {
-	if (! board.place(piece)) {
-	    console.log('game over');
+Game.prototype.rotate = function () {
+    now = Date.now();
+    this.tilt -= this.val*(now - this.last_update)*this.speed;
+    this.last_update = now;
+    if (Math.abs(this.tilt) > 1) {
+	input.parsedirs();
+	if (this.val == 1 && input.down[KEY.rt]) {
+	    this.tilt = this.tilt - Math.ceil(this.tilt);
+	    this.speed = 1/50;
+	} else if (this.val == -1 && input.down[KEY.lt]) {
+	    this.tilt = this.tilt - Math.floor(this.tilt);
+	    this.speed = 1/50;
+	} else {
+	    this.tilt = 0;
+	    this.state = this.waitcmd;
 	}
-	piece.fall();
+	lvl.rotate(this.val);
+	lvl.render(this.tilt*DTHETA);
+	piece.render();
+    } else {
+	lvl.render(this.tilt*DTHETA);
+	piece.render();
+    }
+};
+Game.prototype.startrotate = function (val) {
+    this.state = this.rotate;
+    this.speed = 1/100;
+    this.val = val;
+    this.tilt = 0;
+    this.last_update = Date.now();
+};
+Game.prototype.startfall = function () {
+    this.speed = 0.5/85;
+    this.last_update = Date.now();
+    this.fallen = 0;
+    this.fallto = piece.fall_howfar();
+};
+Game.prototype.fall = function () {
+    now = Date.now();
+    this.fallen += (now - this.last_update)*this.speed;
+    this.speed = this.speed*1.2;
+    this.last_update = now;
+    if (this.fallen > (piece.i - this.fallto)) {
+	piece.i = this.fallto;
+	board.setto(piece,piece.color);
 	board.jettison();
 	board.feast();
 	piece = new ActivePiece(lvl.color);
+	this.state = this.waitcmd;
+	lvl.render();
+	piece.render();
+    } else {
+	lvl.render();
+	piece.render(this.fallen);
+    }
+};
+Game.prototype.gameover = function () {
+};
+Game.prototype.waitcmd = function () {
+    input.parsedirs();
+    if (input.dirs.lt) {
+	this.startrotate(-1);
+    }
+    if (input.dirs.rt) {
+	this.startrotate(1);
+    }
+    if (input.dirs.dn) {
+	if (! board.check(piece)) {
+	    console.log('game over');
+	    this.state = this.gameover;
+	} else {
+	    this.startfall();
+	    this.state = this.fall;
+	}
     }
     if (input.dirs.up) {
 	piece.rotate();
@@ -551,6 +659,7 @@ Game.prototype.waitcmd = function () {
     }
 
     lvl.render();
+    piece.render();
 };
 
 imgs = {};
@@ -560,12 +669,14 @@ lvl = {};
 
 addEventListener("keydown", function (e) {
     input.keyEvent[e.keyCode] = true;
+    input.down[e.keyCode] = true;
     if (e.keyCode in PKEYS) {
 	e.preventDefault();
     } // try to prevent scrolling
 }, false);
 
 addEventListener("keyup", function (e) {
+    delete input.down[e.keyCode];
     if (e.keyCode in PKEYS) {
 	e.preventDefault();
     }
