@@ -9,16 +9,16 @@ var COL_NEG = 2;
 
 var STYLES = {
     babyface:{
-	sky:'#e9f4ff',
+	sky:'#000',
 	sun:'baby',
-	sunfill: '#fe0',
-	corona:'#fe0',
+	sunfill: '#cff',
+	corona:'#cff',
 	fire:'#660',
 	preview: '#8383f9',
 	corona_nm: 'rays_sun',
 	fire_nm: 'fire',
 	skip:0,
-	grid:'#ccc',
+	grid:'#222',
 	lines:3,
 	timer:60*3
     },
@@ -119,18 +119,30 @@ var realMod = function(n,m) {
     return n;
 };
 // classes
-var Sprite = function(src,origin) {
+var Sprite = function(src,origin,sheet) {
+    // assume a vertical sprite sheet
     if (origin == undefined) {
 	origin = [0,0];
     }
+    if (sheet == undefined) {
+	sheet = [1,1];
+    }
+    this.sheet = sheet;
     this.ready = false;
     this.image = new Image();
     this.image.parent = this;
+    this.seq = [0];
+    this.seqnum = 0;
+    this.anispeed = 1000;
+    this.last_update = Date.now();
+    this.spos = [0,0];
     this.ox = origin[0];
     this.oy = origin[1];
     this.rot = 0;
     this.image.onload = function() {
 	this.parent.ready = true;
+	this.parent.sw = this.width/this.parent.sheet[0];
+	this.parent.sh = this.height/this.parent.sheet[1];
     };
     this.image.src = src;
 };
@@ -141,8 +153,18 @@ Sprite.prototype.render = function (tilt) {
     ctx.save();
     ctx.translate(this.ox, this.oy);
     ctx.rotate(this.rot+tilt);
-    ctx.drawImage(this.image,-this.image.width/2,-this.image.height/2);
+    ctx.drawImage(this.image,this.spos[0]*this.sw,this.spos[1]*this.sh,this.sw,this.sh,-this.sw/2,-this.sh/2,
+		   this.sw, this.sh);
     ctx.restore();
+};
+Sprite.prototype.animate = function () {
+    var now = Date.now();
+    
+    if ((now - this.last_update) > this.anispeed) {
+	this.seqnum = realMod(this.seqnum+1, this.seq.length);
+	this.spos[1] = this.seq[this.seqnum];
+	this.last_update = Date.now();
+    }
 };
 
 var Pattern = function(src,sheet,seq) {
@@ -395,8 +417,10 @@ Board.prototype.jettison = function () {
 	for (var i = board.nrows-1 ; i >= 0 ; i--) {
 	    if (board[i][j] == COL_COR) {
 		foundcorona = true;
-	    } else if (board[i][j] == COL_NEG && foundcorona == false) {
+	    } else if (board[i][j] == COL_NEG && ! foundcorona) {
 		board[i][j] = COL_NON;
+	    } else if (board[i][j] == COL_NON && foundcorona) {
+		board[i][j] = COL_NEG;
 	    }
 	}
     }
@@ -596,9 +620,12 @@ var Level = function (type) {
     this.fire_pat = pats[this.fire_nm];
     this.fire_pat.makePattern();
 };
-Level.prototype.render = function(tilt) {
+Level.prototype.render = function(tilt,showprev) {
     if (tilt == undefined) {
 	tilt = 0;
+    }
+    if (showprev == undefined) {
+	showprev = true;
     }
 
     ctx.fillStyle = lvl.sky;
@@ -607,6 +634,8 @@ Level.prototype.render = function(tilt) {
     ctx.fillStyle = '#000';
     ctx.fillText(lvl.lines,20,20);
     ctx.fillText(Math.round(lvl.timer - (Date.now() - lvl.began)/1000),40,20);
+    ctx.font = '20px mine';
+    ctx.fillText('test',50,50);
     board.drawgrid();
 
     imgs.sky.render();
@@ -616,7 +645,9 @@ Level.prototype.render = function(tilt) {
     ctx.fill();
     imgs[this.sun].render(tilt);
 
-    piece.draw_preview();
+    if (showprev) {
+	piece.draw_preview();
+    }
     
     board.render(tilt);
 };
@@ -645,7 +676,7 @@ Game.prototype.callback = function () {
     setTimeout(game.callback,FRIENDLY);
 };
 Game.prototype.loading = function () {
-    var newimgs = [['sky',[cvs.width/2,cvs.height/2]],['baby',[cvs.ox,cvs.oy]],['man',[cvs.ox,cvs.oy]]];
+    var newimgs = [['sky',[cvs.width/2,cvs.height/2]],['baby',[cvs.ox,cvs.oy],[1,11]],['man',[cvs.ox,cvs.oy]]];
     var newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     var iloaded = this.startloading(newimgs,Sprite,imgs);
     var ploaded = this.startloading(newpats,Pattern,pats);
@@ -658,7 +689,7 @@ Game.prototype.startloading = function (these,constructor,where) {
     var loaded = 0;
     for (var i in these) {
 	if (! (these[i][0] in where)) {
-	    where[these[i][0]] = new constructor('images/'+these[i][0]+'.png',these[i][1]);
+	    where[these[i][0]] = new constructor('images/'+these[i][0]+'.png',these[i][1],these[i][2]);
 	} else if (where[these[i][0]].ready) {
 	    loaded++;
 	}
@@ -717,7 +748,7 @@ Game.prototype.fall = function () {
 	lvl.render();
 	piece.render();
     } else {
-	lvl.render();
+	lvl.render(0,false);
 	piece.render(this.fallen);
     }
 };
@@ -749,6 +780,10 @@ Game.prototype.waitcmd = function () {
 	delete input.keyEvent[KEY.en];
     }
     
+    for (var i in imgs) {
+	imgs[i].animate();
+    }
+
     for (var p in pats) {
 	pats[p].animate();
     }

@@ -1,3 +1,14 @@
+@font-face {
+	font-family:mine;
+	src: url('images/font.ttf') format('truetype');
+}
+
+#test {
+	font-family: mine;
+	font-size: 40px;
+	text-rendering: optimizeLegibility;
+}
+
 body {
     background: #ffffff;
     text-align:center;
