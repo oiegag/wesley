@@ -7,46 +7,6 @@ var COL_NON = 0;
 var COL_COR = 1;
 var COL_NEG = 2;
 
-var STYLES = {
-    babyface:{
-	sky:'#000',
-	sun:'baby',
-	sunfill: '#cff',
-	corona:'#cff',
-	fire:'#660',
-	preview: '#8383f9',
-	corona_nm: 'rays_sun',
-	fire_nm: 'fire',
-	skip:0,
-	grid:'#222',
-	lines:3,
-	timer:60*3
-    },
-    manface:{
-	sky:'#add6ff',
-	sun:'man',
-	sunfill: '#fb0',
-	corona:'#fc0',
-	fire:'#660',
-	preview: '#8383f9',
-	corona_nm: 'rays_sun',
-	fire_nm: 'fire',
-	skip:2,
-	grid:'#aaa',
-	lines:6,
-	timer:60*6
-    },
-    dying:{
-	sky:'#f70',
-	sunfill: '#f30',
-	corona:'#f30',
-	fire:'#660',
-	preview: '#8383f9',
-	grid:'#a20',
-    }
-};
-
-
 var PI = Math.PI;
 var NCOLS = 22;
 var DTHETA = 2*PI/NCOLS;
@@ -118,6 +78,14 @@ var realMod = function(n,m) {
     }
     return n;
 };
+var repeatN = function (m,n) { // m n times
+    var out = [];
+    for (var i = 0 ; i < n ; i++) {
+	out[i] = m;
+    }
+    return out;
+}
+
 // classes
 var Sprite = function(src,origin,sheet) {
     // assume a vertical sprite sheet
@@ -194,7 +162,7 @@ var Pattern = function(src,sheet,seq) {
     this.image.src = src;
 };
 Pattern.prototype.animate = function () {
-    now = Date.now();
+    var now = Date.now();
     if (now - this.last_update > 400) {
 	this.seqnum = realMod(this.seqnum + 1, this.seq.length);
 	this.pat = this.pats[this.seq[this.seqnum]];
@@ -602,73 +570,11 @@ Input.prototype.parsedirs = function () {
     }
 };
 
-var Level = function (type) {
-    this.type = type;
-    for (var i in STYLES[this.type]) {
-	this[i] = STYLES[this.type][i];
-    }
-    this.began = Date.now();
-
-    board = new Board(this.skip);
-    ActivePiece.buildtypes();
-    piece = new ActivePiece(COL_COR);
-    this.color = COL_COR; // stores what the new pieces come in as
-    this.rot = 0;
-
-    this.corona_pat = pats[this.corona_nm];
-    this.corona_pat.makePattern();
-    this.fire_pat = pats[this.fire_nm];
-    this.fire_pat.makePattern();
-};
-Level.prototype.render = function(tilt,showprev) {
-    if (tilt == undefined) {
-	tilt = 0;
-    }
-    if (showprev == undefined) {
-	showprev = true;
-    }
-
-    ctx.fillStyle = lvl.sky;
-    ctx.fillRect(0,0,cvs.width,cvs.height);
-
-    ctx.fillStyle = '#000';
-    ctx.fillText(lvl.lines,20,20);
-    ctx.fillText(Math.round(lvl.timer - (Date.now() - lvl.began)/1000),40,20);
-    ctx.font = '20px mine';
-    ctx.fillText('test',50,50);
-    board.drawgrid();
-
-    imgs.sky.render();
-
-    board.draw_arc(board.rs[0],0,2*PI);
-    ctx.fillStyle = lvl.sunfill;
-    ctx.fill();
-    imgs[this.sun].render(tilt);
-
-    if (showprev) {
-	piece.draw_preview();
-    }
-    
-    board.render(tilt);
-};
-Level.prototype.switch_color = function () {
-    if (this.color == COL_COR) {
-	this.color = COL_NEG;
-	piece.color = COL_NEG;
-    } else {
-	this.color = COL_COR;
-	piece.color = COL_COR;
-    }
-};
-Level.prototype.rotate = function (rot) {
-    board.rotate(rot);
-    imgs[this.sun].rot -= rot*board.dtheta;
-};
-
 var Game = function () {
     this.state = this.loading;
-    this.lvls = ['babyface','manface'];
+    this.lvls = [SleepingBaby,WokenBaby,StarMan];
     this.lvl = 0;
+    lvl = new this.lvls[this.lvl]();
     setTimeout(this.callback,FRIENDLY);
 };
 Game.prototype.callback = function () {
@@ -676,49 +582,50 @@ Game.prototype.callback = function () {
     setTimeout(game.callback,FRIENDLY);
 };
 Game.prototype.loading = function () {
-    var newimgs = [['sky',[cvs.width/2,cvs.height/2]],['baby',[cvs.ox,cvs.oy],[1,11]],['man',[cvs.ox,cvs.oy]]];
-    var newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
-    var iloaded = this.startloading(newimgs,Sprite,imgs);
-    var ploaded = this.startloading(newpats,Pattern,pats);
-    if (iloaded == newimgs.length && ploaded == newpats.length) {
-	lvl = new Level(this.lvls[realMod(this.lvl,this.lvls.length)]);
-	this.state = this.waitcmd;
+    if(lvl.load()) {
+	lvl.postload();
+	lvl.dialog();
+	this.state = this.dialog;
     }
 };
-Game.prototype.startloading = function (these,constructor,where) {
-    var loaded = 0;
-    for (var i in these) {
-	if (! (these[i][0] in where)) {
-	    where[these[i][0]] = new constructor('images/'+these[i][0]+'.png',these[i][1],these[i][2]);
-	} else if (where[these[i][0]].ready) {
-	    loaded++;
+Game.prototype.dialog = function () {
+    if (KEY.en in input.keyEvent) {
+	delete input.keyEvent[KEY.en];
+	if(! lvl.dialog()) {
+	    this.state = this.waitcmd;
 	}
     }
-    return loaded;
 };
 Game.prototype.rotate = function () {
-    now = Date.now();
+    var now = Date.now();
     this.tilt -= this.val*(now - this.last_update)*this.speed;
     this.last_update = now;
     if (Math.abs(this.tilt) > 1) {
 	input.parsedirs();
 	if (this.val == 1 && input.down[KEY.rt]) {
-	    this.tilt = this.tilt - Math.ceil(this.tilt);
+	    while (this.tilt < -1) {
+		this.tilt++;
+		lvl.rotate(this.val);
+	    }
 	    this.speed = 1/50;
 	} else if (this.val == -1 && input.down[KEY.lt]) {
-	    this.tilt = this.tilt - Math.floor(this.tilt);
+	    while (this.tilt > 1) {
+		this.tilt--;
+		lvl.rotate(this.val);
+	    }
 	    this.speed = 1/50;
 	} else {
 	    this.tilt = 0;
 	    this.state = this.waitcmd;
+	    lvl.rotate(this.val);
 	}
-	lvl.rotate(this.val);
 	lvl.render(this.tilt*DTHETA);
 	piece.render();
     } else {
 	lvl.render(this.tilt*DTHETA);
 	piece.render();
     }
+    lvl.interp_palette();
 };
 Game.prototype.startrotate = function (val) {
     this.state = this.rotate;
@@ -734,7 +641,7 @@ Game.prototype.startfall = function () {
     this.fallto = piece.fall_howfar();
 };
 Game.prototype.fall = function () {
-    now = Date.now();
+    var now = Date.now();
     this.fallen += (now - this.last_update)*this.speed;
     this.speed = this.speed*1.2;
     this.last_update = now;
@@ -751,6 +658,7 @@ Game.prototype.fall = function () {
 	lvl.render(0,false);
 	piece.render(this.fallen);
     }
+    lvl.interp_palette();
 };
 Game.prototype.gameover = function () {
 };
@@ -780,43 +688,20 @@ Game.prototype.waitcmd = function () {
 	delete input.keyEvent[KEY.en];
     }
     
-    for (var i in imgs) {
-	imgs[i].animate();
-    }
-
-    for (var p in pats) {
-	pats[p].animate();
-    }
-
+    lvl.animate();
     lvl.render();
     piece.render();
-    if (lvl.lines <= 0) {
+    if (lvl.wincondition()) {
 	this.lvl++;
-	lvl = new Level(this.lvls[realMod(this.lvl,this.lvls.length)]);
+	lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
+	this.state = this.loading;
+	return;
     }
-    now = Date.now();
-    if ((now - lvl.began)/1000 > lvl.timer) {
+
+    lvl.interp_palette();
+    if (lvl.losecondition()) {
 	console.log('game over');
 	this.state = this.gameover;
-    }
-    if (lvl.type != 'dying') {
-	if ((now - lvl.began)/1000 > lvl.timer - 30) {
-	    lvl.type = 'dying';
-	    for (var i in STYLES['dying']) {
-		lvl[i] = STYLES['dying'][i];
-	    }
-	} else {
-	    for (var i in STYLES['dying']) {
-		var endrgb = css2rgb(STYLES['dying'][i]);
-		var startrgb = css2rgb(STYLES[lvl.type][i]);
-		var frac = (now - lvl.began)/(1000*(lvl.timer-30));
-		var curr = [];
-		for (var j = 0 ; j < 3 ; j++) {
-		    curr[j] = Math.round(startrgb[j]*(1-frac) + endrgb[j]*frac);
-		}
-		lvl[i] = rgb2css(curr);
-	    }
-	}
     }
 };
 
