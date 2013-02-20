@@ -591,8 +591,17 @@ Game.prototype.loading = function () {
 Game.prototype.dialog = function () {
     if (KEY.en in input.keyEvent) {
 	delete input.keyEvent[KEY.en];
-	if(! lvl.dialog()) {
+	this.state = this.dialog_animation;
+	lvl.last_update = Date.now();
+	lvl.begin_animation = lvl.last_update;
+    }
+};
+Game.prototype.dialog_animation = function () {
+    if (! lvl.dialog_animation()) {
+	if (! lvl.dialog()) {
 	    this.state = this.waitcmd;
+	} else {
+	    this.state = this.dialog;
 	}
     }
 };
