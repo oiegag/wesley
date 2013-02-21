@@ -107,6 +107,7 @@ var Sprite = function(src,origin,sheet) {
     this.ox = origin[0];
     this.oy = origin[1];
     this.rot = 0;
+    this.tilt = 0; // a temporary rotation variable
     this.image.onload = function() {
 	this.parent.ready = true;
 	this.parent.sw = this.width/this.parent.sheet[0];
@@ -114,13 +115,13 @@ var Sprite = function(src,origin,sheet) {
     };
     this.image.src = src;
 };
-Sprite.prototype.render = function (tilt) {
-    if (tilt == undefined) {
-	tilt = 0;
+Sprite.prototype.render = function () {
+    if (this.fillhook != undefined) {
+	this.fillhook();
     }
     ctx.save();
     ctx.translate(this.ox, this.oy);
-    ctx.rotate(this.rot+tilt);
+    ctx.rotate(this.rot+this.tilt*DTHETA);
     ctx.drawImage(this.image,this.spos[0]*this.sw,this.spos[1]*this.sh,this.sw,this.sh,-this.sw/2,-this.sh/2,
 		   this.sw, this.sh);
     ctx.restore();
@@ -196,9 +197,11 @@ Pattern.prototype.makePattern = function () {
     this.pat = this.pats[0];
 };
 
-var Board = function (skiprows) {
+var Board = function (skiprows,initialstate) {
     this.ncols = NCOLS;
     this.nrows = 15;
+    this.ox = cvs.ox;
+    this.oy = cvs.oy;
     this.rstart = .1; // fraction of outer radius to start board
     this.dtheta = 2*PI/this.ncols;
     this.rs = [];
@@ -211,10 +214,32 @@ var Board = function (skiprows) {
     for (var j = 0, theta = 0.0 ; j < this.ncols ; j++, theta += this.dtheta) {
 	this.ts.push(theta);
     }
+    this.load_initial(initialstate);
+};
+Board.prototype.load_initial = function (initialstate) {
+    // build an empty board
     for (var i = 0 ; i < this.nrows ; i++) {
 	this[i] = [];
 	for (var j = 0 ; j < this.ncols ; j++) {
 	    this[i][j] = 0;
+	}
+    }
+    if (initialstate == undefined) {
+	return;
+    }
+    // then fill from the bottom up until you run out of stuff
+    for (var i = 0 ; i < this.nrows ; i++) {
+	if (initialstate[i] == undefined) {
+	    break;
+	}
+	for (var j = 0 ; j < this.ncols ; j++) {
+	    if (initialstate[i][j] == '.') {
+		this[i][j] = COL_NON;
+	    } else if (initialstate[i][j] == 'c') {
+		this[i][j] = COL_COR;
+	    } else if (initialstate[i][j] == 'n') {
+		this[i][j] = COL_NEG;
+	    }
 	}
     }
 };
@@ -291,16 +316,16 @@ Board.prototype.drawgrid = function () {
 };
 Board.prototype.draw_arc = function (r,tbegin,tend) {
     ctx.beginPath();
-    ctx.arc(cvs.ox, cvs.oy, r*cvs.width/2, tbegin, tend);
+    ctx.arc(this.ox, this.oy, r*cvs.width/2, tbegin, tend);
     ctx.closePath();
     ctx.stroke();
 };
 Board.prototype.draw_rad = function (r1,r2,t) {
     ctx.beginPath();
-    ctx.moveTo(Math.round(cvs.ox + r1*cvs.width/2*Math.cos(t)),
-	       Math.round(cvs.oy + r1*cvs.width/2*Math.sin(t)));
-    ctx.lineTo(Math.round(cvs.ox + r2*cvs.width/2*Math.cos(t)),
-	       Math.round(cvs.oy + r2*cvs.width/2*Math.sin(t)));
+    ctx.moveTo(Math.round(this.ox + r1*cvs.width/2*Math.cos(t)),
+	       Math.round(this.oy + r1*cvs.width/2*Math.sin(t)));
+    ctx.lineTo(Math.round(this.ox + r2*cvs.width/2*Math.cos(t)),
+	       Math.round(this.oy + r2*cvs.width/2*Math.sin(t)));
     ctx.closePath();
     ctx.stroke();
 };
@@ -330,7 +355,7 @@ Board.prototype.draw_box = function (i,j,fill,tilt) {
     }
 
     ctx.save();
-    ctx.translate(cvs.ox,cvs.oy);
+    ctx.translate(this.ox,this.oy);
     ctx.rotate(tilt);
     ctx.beginPath();
     ctx.arc(0,0,this.r(i)*cvs.width/2,this.t(j),this.t(j+1));
@@ -438,12 +463,12 @@ ActivePiece.prototype.draw_column = function (j,ending) {
     ctx.globalAlpha = 0.25;
     ctx.beginPath();
 
-    ctx.arc(cvs.ox,cvs.oy,board.r(0)*cvs.width/2,board.t(j),board.t(j+1));
-    ctx.lineTo(Math.round(cvs.ox + board.r(ending)*cvs.width/2*Math.cos(board.t(j+1))),
-	       Math.round(cvs.oy + board.r(ending)*cvs.width/2*Math.sin(board.t(j+1))));
-    ctx.arc(cvs.ox,cvs.oy,board.r(ending)*cvs.width/2,board.t(j+1),board.t(j), true);    
-    ctx.lineTo(Math.round(cvs.ox + board.r(0)*cvs.width/2*Math.cos(board.t(j))),
-	       Math.round(cvs.oy + board.r(0)*cvs.width/2*Math.sin(board.t(j))));
+    ctx.arc(board.ox,board.oy,board.r(0)*cvs.width/2,board.t(j),board.t(j+1));
+    ctx.lineTo(Math.round(board.ox + board.r(ending)*cvs.width/2*Math.cos(board.t(j+1))),
+	       Math.round(board.oy + board.r(ending)*cvs.width/2*Math.sin(board.t(j+1))));
+    ctx.arc(board.ox,board.oy,board.r(ending)*cvs.width/2,board.t(j+1),board.t(j), true);    
+    ctx.lineTo(Math.round(board.ox + board.r(0)*cvs.width/2*Math.cos(board.t(j))),
+	       Math.round(board.oy + board.r(0)*cvs.width/2*Math.sin(board.t(j))));
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
@@ -571,85 +596,100 @@ Input.prototype.parsedirs = function () {
 };
 
 var Game = function () {
-    this.state = this.loading;
+    this.gotolater(this.loading);
     this.lvls = [SleepingBaby,WokenBaby,StarMan];
     this.lvl = 0;
     lvl = new this.lvls[this.lvl]();
     setTimeout(this.callback,FRIENDLY);
 };
+Game.prototype.gotolater = function (state) {
+    this.state = [state];
+};
+Game.prototype.calllater = function (state) {
+    this.state.push(state);
+};
+Game.prototype.returnlater = function () {
+    this.state.pop();
+};
 Game.prototype.callback = function () {
-    game.state.call(game);
+    game.state[game.state.length-1].call(game);
     setTimeout(game.callback,FRIENDLY);
 };
 Game.prototype.loading = function () {
     if(lvl.load()) {
 	lvl.postload();
 	lvl.dialog();
-	this.state = this.dialog;
+	this.gotolater(this.dialog);
     }
 };
 Game.prototype.dialog = function () {
     if (KEY.en in input.keyEvent) {
 	delete input.keyEvent[KEY.en];
-	this.state = this.dialog_animation;
+	this.gotolater(this.dialog_animation);
 	lvl.last_update = Date.now();
 	lvl.begin_animation = lvl.last_update;
     }
 };
 Game.prototype.dialog_animation = function () {
+    if (KEY.en in input.keyEvent) {
+	delete input.keyEvent[KEY.en];
+	lvl.begin_animation -= 2000;
+    }
     if (! lvl.dialog_animation()) {
 	if (! lvl.dialog()) {
-	    this.state = this.waitcmd;
+	    this.gotolater(this.waitcmd);
 	} else {
-	    this.state = this.dialog;
+	    this.gotolater(this.dialog);
 	}
     }
 };
 Game.prototype.rotate = function () {
+    // this function is only called
     var now = Date.now();
-    this.tilt -= this.val*(now - this.last_update)*this.speed;
+    imgs[lvl.sun].tilt -= this.val*(now - this.last_update)*this.speed;
     this.last_update = now;
-    if (Math.abs(this.tilt) > 1) {
+    if (Math.abs(imgs[lvl.sun].tilt) > 1) {
 	input.parsedirs();
 	if (this.val == 1 && input.down[KEY.rt]) {
-	    while (this.tilt < -1) {
-		this.tilt++;
+	    while (imgs[lvl.sun].tilt < -1) {
+		imgs[lvl.sun].tilt++;
 		lvl.rotate(this.val);
 	    }
 	    this.speed = 1/50;
 	} else if (this.val == -1 && input.down[KEY.lt]) {
-	    while (this.tilt > 1) {
-		this.tilt--;
+	    while (imgs[lvl.sun].tilt > 1) {
+		imgs[lvl.sun].tilt--;
 		lvl.rotate(this.val);
 	    }
 	    this.speed = 1/50;
 	} else {
-	    this.tilt = 0;
-	    this.state = this.waitcmd;
+	    imgs[lvl.sun].tilt = 0;
+	    this.returnlater();
 	    lvl.rotate(this.val);
 	}
-	lvl.render(this.tilt*DTHETA);
+	lvl.render_play();
 	piece.render();
     } else {
-	lvl.render(this.tilt*DTHETA);
+	lvl.render_play();
 	piece.render();
     }
     lvl.interp_palette();
 };
 Game.prototype.startrotate = function (val) {
-    this.state = this.rotate;
+    this.calllater(this.rotate);
     this.speed = 1/100;
     this.val = val;
-    this.tilt = 0;
     this.last_update = Date.now();
 };
 Game.prototype.startfall = function () {
+    this.calllater(this.fall);
     this.speed = 0.5/85;
     this.last_update = Date.now();
     this.fallen = 0;
     this.fallto = piece.fall_howfar();
 };
 Game.prototype.fall = function () {
+    // this is only called
     var now = Date.now();
     this.fallen += (now - this.last_update)*this.speed;
     this.speed = this.speed*1.2;
@@ -660,18 +700,18 @@ Game.prototype.fall = function () {
 	board.jettison();
 	board.feast();
 	piece = new ActivePiece(lvl.color);
-	this.state = this.waitcmd;
-	lvl.render();
+	this.returnlater();
+	lvl.render_play();
 	piece.render();
     } else {
-	lvl.render(0,false);
+	lvl.render_play(0,false);
 	piece.render(this.fallen);
     }
     lvl.interp_palette();
 };
 Game.prototype.gameover = function () {
 };
-Game.prototype.waitcmd = function () {
+Game.prototype.handle_leftrightup = function () {
     input.parsedirs();
     if (input.dirs.lt) {
 	this.startrotate(-1);
@@ -679,17 +719,20 @@ Game.prototype.waitcmd = function () {
     if (input.dirs.rt) {
 	this.startrotate(1);
     }
+    if (input.dirs.up) {
+	piece.rotate();
+    }
+};
+Game.prototype.waitcmd = function () {
+    this.handle_leftrightup();
+
     if (input.dirs.dn) {
 	if (! board.check(piece)) {
 	    console.log('game over');
-	    this.state = this.gameover;
+	    this.gotolater(this.gameover);
 	} else {
 	    this.startfall();
-	    this.state = this.fall;
 	}
-    }
-    if (input.dirs.up) {
-	piece.rotate();
     }
     if (KEY.sp in input.keyEvent || KEY.en in input.keyEvent) {
 	lvl.switch_color();
@@ -698,21 +741,45 @@ Game.prototype.waitcmd = function () {
     }
     
     lvl.animate();
-    lvl.render();
+    lvl.render_play();
     piece.render();
     if (lvl.wincondition()) {
 	this.lvl++;
 	lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
-	this.state = this.loading;
+	this.gotolater(this.loading);
 	return;
     }
 
     lvl.interp_palette();
     if (lvl.losecondition()) {
 	console.log('game over');
-	this.state = this.gameover;
+	this.gotolater(this.gameover);
     }
 };
+Game.prototype.tutorial1 = function () {
+    this.handle_leftrightup();
+
+    if (input.dirs.dn) {
+	if (piece.fall_howfar() != 1) {
+	    imgs.moon.fillhook = function () {
+		lvl.moon_dialog("hold on a minute. there's no time limit here. you want to complete the innermost ring to wake him.");
+	    };
+	} else {
+	    this.startfall();
+	}
+    }
+
+    lvl.animate();
+    lvl.render_play();
+    piece.render();
+    if (lvl.wincondition()) {
+	this.lvl++;
+	lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
+	this.gotolater(this.loading);
+	return;
+    }
+};
+
 
 imgs = {};
 pats = {};

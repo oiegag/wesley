@@ -8,6 +8,7 @@ Level.prototype.preload = function () {
     }
 
     this.color = COL_COR; // stores what the new pieces come in as
+    this.inscene = [];
     this.rot = 0;
 };
 Level.prototype.startloading = function (these,constructor,where) {
@@ -33,9 +34,21 @@ Level.prototype.load = function() {
 };
 Level.prototype.postload = function () {
     this.began = Date.now();
-    board = new Board(this.skip);
+    board = new Board(this.skip,this.initialstate);
     ActivePiece.buildtypes();
     piece = new ActivePiece(COL_COR);
+
+    imgs[this.sun].fillhook = function () {
+	ctx.lineWidth = 1.25;
+	ctx.strokeStyle = lvl.sunfill;
+	board.ox = this.ox;
+	board.oy = this.oy;
+	board.draw_arc(board.rs[0],0,2*PI);
+	ctx.fillStyle = lvl.sunfill;
+	ctx.fill();
+
+	board.render(this.tilt*DTHETA);
+    };
 
     this.corona_pat = pats[this.corona_nm];
     this.corona_pat.makePattern();
@@ -57,10 +70,8 @@ Level.prototype.background = function (grid) {
 	board.drawgrid();
     }
 };
-Level.prototype.render = function(tilt,showprev) {
-    if (tilt == undefined) {
-	tilt = 0;
-    }
+Level.prototype.render_play = function(showprev) {
+    // render the whole scene for when you're playing the game
     if (showprev == undefined) {
 	showprev = true;
     }
@@ -69,16 +80,11 @@ Level.prototype.render = function(tilt,showprev) {
 
     imgs.sky.render();
 
-    board.draw_arc(board.rs[0],0,2*PI);
-    ctx.fillStyle = this.sunfill;
-    ctx.fill();
-    imgs[this.sun].render(tilt);
-
     if (showprev) {
 	piece.draw_preview();
     }
-    
-    board.render(tilt);
+
+    this.draw_scene();
 };
 Level.prototype.switch_color = function () {
     if (this.color == COL_COR) {
@@ -199,17 +205,29 @@ Level.prototype.animate_rise = function (risewhat,from,to,inthesems) {
     sfrac = 1 - Math.exp(-(tfrac*5))*Math.cos(10*tfrac);
     risewhat.ox = Math.round((1-sfrac)*from[0] + sfrac*to[0]);
     risewhat.oy = Math.round((1-sfrac)*from[1] + sfrac*to[1]);
-    risewhat.render();
+    this.draw_scene();
 
     return (tfrac < 1);
 };
+Level.prototype.draw_scene = function () {
+    for (var i in this.inscene) {
+	this.inscene[i].render();
+    }
+};
 Level.prototype.moon_rise = function () {
+    this.inscene.moon = imgs.moon;
     return this.animate_rise(imgs.moon, [imgs.moon.image.width/2,1.3*cvs.height],
 			     [imgs.moon.image.width/2+0.01*cvs.width,0.85*cvs.height], 800);
 };
+Level.prototype.sun_rise = function () {
+    this.inscene.sun = imgs[this.sun];
+    return this.animate_rise(imgs[this.sun], [cvs.width/2,1.3*cvs.height],
+			     [cvs.width/2,0.9*cvs.height], 800);
+};
+
 
 // level building utils
-var makeDialog = function (description,next,characters) {
+var makeDialog = function (description,next) {
     return function () {
 	this.background(false);
 	if (description.narrate) {
@@ -218,10 +236,7 @@ var makeDialog = function (description,next,characters) {
 	if (description.moon) {
 	    this.moon_dialog(description.moon);
 	}
-	console.log(characters);
-	for (var i in characters) {
-	    imgs[characters[i]].render();
-	}
+	this.draw_scene();
 	if (description.action == undefined) {
 	    delete this.dialog_animation;
 	} else {
@@ -235,22 +250,22 @@ var makeDialog = function (description,next,characters) {
 	return true;
     };
 };
-var makeScene = function (dialogs,description,onstage,continuation) {
+var makeScene = function (dialogs,description,continuation) {
+    // dialogs points to the current set of dialogs.
+    // description is a bunch of tables describing the new dialogs to add
+    // continuation is whether there should be more in dialogs after this.
     for (var i in description) {
 	if (i == description.length-1 && !continuation) {
 	    next = undefined;
 	} else {
 	    next = dialogs.length+1;
 	}
-	dialogs.push(makeDialog(description[i], next, onstage));
-	if (description[i].action == 'moon_rise') {
-	    onstage = onstage.concat(['moon']); // pass a new copy of onstage to each dialog's closure
-	}
+	dialogs.push(makeDialog(description[i], next));
     }
 };
 		     
 
-// sleeping baby level
+// sleeping baby level tutorial 1
 var SleepingBaby = function () {
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['baby',[cvs.ox,cvs.oy],[1,11]], ['moon']];
     this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
@@ -259,6 +274,10 @@ var SleepingBaby = function () {
     this.dialog = this.dialogs[0];
 };
 SleepingBaby.prototype = new Level();
+SleepingBaby.prototype.initialstate = [
+    ".ccccccccccccccccccccc",
+    "....................c.",
+];
 makeScene(SleepingBaby.prototype.dialogs,
 	  [
 	      {
@@ -272,23 +291,59 @@ makeScene(SleepingBaby.prototype.dialogs,
 		  narrate:"'moon, it's not that i don't enjoy your company here, but i'm cold and it's dark, and most of the time there's nothing to do.\n \n in all of your travels, have you found some way to make things better than this?' you ask.\n \n moon is quiet a moment and looks thoughtful, like moons do."
 	      },
 	      {
-		  moon:"there is a way. a star can take away the cold and the dark for a little while. your star is sleeping, but i could teach you to wake him. would you like that?"
+		  moon:"there is a way. \n a star can take away the cold and the dark for a little while. your star is sleeping, but i could teach you to wake him. should i?",
+		  action: 'sun_rise'
+	      },
+	      {
+		  narrate:"'you mean that star baby?' you say. you consider playing another game with fewer words a while ...",
+	      },
+	      {
+		  narrate:"... but finally decide against it. you turn your attention to the star baby. it's strange you hadn't thought about it before."
+	      },
+	      {
+		  moon:"stars need food to burn. surround a star by food, and he will feast. feed him enough, and he will shine.",
+		  narrate:"'where do you get this food exactly?' you ask."
 	      }
-	  ],[],false);
-
+	  ],true);
+SleepingBaby.prototype.enter_tutorial = function () {
+    this.background(false);
+    this.moon_dialog("have you ever wondered about all of those puzzle pieces you have lying around off-screen? star food!");
+    this.draw_scene();
+    imgs.moon.fillhook = function () {
+	lvl.moon_dialog("try feeding him this one. use left and right to maneuver. up rotates the piece. when you like your position, press down to launch.");
+    };
+    this.dialog_animation = function () {
+	game.gotolater(game.tutorial1);
+	delete this.dialog_animation;
+	return true;
+    };
+    delete this.dialog;
+    return true;
+};
+SleepingBaby.prototype.dialogs.push(SleepingBaby.prototype.enter_tutorial);
 // woken baby level
 var WokenBaby = function () {
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['baby',[cvs.ox,cvs.oy],[1,11]]];
     this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.type = 'babyface';
     this.preload();
+    this.dialog = this.dialogs[0];
 };
 WokenBaby.prototype = new Level();
 WokenBaby.prototype.postload = function () {
     Level.prototype.postload.call(this);
+    this.inscene.push(imgs[this.sun]);
+    this.inscene.push(imgs.moon);
     imgs[this.sun].seq = repeatN(9,80).concat([9,8,7,6,5,4,3,2,1,0,1,2,3,4,5,6,7,8,9]);
     imgs[this.sun].anispeed = 40;
 };
+makeScene(WokenBaby.prototype.dialogs,
+	  [
+	      {
+		  moon: "now here's a situation. you've got a hole in that ring, but you've already covered it with star food. you can't complete a ring above it, because that baby can't eat it unless it's right next to him. you need to try to use a clean-up piece."
+	      },
+	  ],false);
+
 // first man level
 var StarMan = function () {
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['man',[cvs.ox,cvs.oy]]];
