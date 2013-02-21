@@ -10,6 +10,7 @@ Level.prototype.preload = function () {
     this.color = COL_COR; // stores what the new pieces come in as
     this.inscene = [];
     this.rot = 0;
+    this.lines = 1;
 };
 Level.prototype.startloading = function (these,constructor,where) {
     var loaded = 0;
@@ -36,7 +37,7 @@ Level.prototype.postload = function () {
     this.began = Date.now();
     board = new Board(this.skip,this.initialstate);
     ActivePiece.buildtypes();
-    piece = new ActivePiece(COL_COR);
+    piece = new ActivePiece(COL_COR,this.newpiece());
 
     imgs[this.sun].fillhook = function () {
 	ctx.lineWidth = 1.25;
@@ -69,6 +70,9 @@ Level.prototype.background = function (grid) {
     if (grid) {
 	board.drawgrid();
     }
+};
+Level.prototype.newpiece = function () {
+    return randN(ActivePiece.prototype.pics.length);
 };
 Level.prototype.render_play = function(showprev) {
     // render the whole scene for when you're playing the game
@@ -194,7 +198,6 @@ Level.prototype.moon_dialog = function (text) {
 Level.prototype.dialog = function () {
     return false;
 };
-Level.prototype.dialogs = [];
 Level.prototype.dialog_animation = function () {
     return false;
 };
@@ -251,6 +254,7 @@ var makeDialog = function (description,next) {
     };
 };
 var makeScene = function (dialogs,description,continuation) {
+    // make sure you pass makeScene something that exists.
     // dialogs points to the current set of dialogs.
     // description is a bunch of tables describing the new dialogs to add
     // continuation is whether there should be more in dialogs after this.
@@ -274,10 +278,14 @@ var SleepingBaby = function () {
     this.dialog = this.dialogs[0];
 };
 SleepingBaby.prototype = new Level();
+SleepingBaby.prototype.newpiece = function () {
+    return 4; // cup piece
+};
 SleepingBaby.prototype.initialstate = [
-    ".ccccccccccccccccccccc",
+    ".c.ccccccccccccccccccc",
     "....................c.",
 ];
+SleepingBaby.prototype.dialogs = [];
 makeScene(SleepingBaby.prototype.dialogs,
 	  [
 	      {
@@ -321,6 +329,85 @@ SleepingBaby.prototype.enter_tutorial = function () {
     return true;
 };
 SleepingBaby.prototype.dialogs.push(SleepingBaby.prototype.enter_tutorial);
+
+// sleeping baby negatives, tutorial 2
+var SleepingBabyNeg = function () {
+    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['baby',[cvs.ox,cvs.oy],[1,11]]];
+    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
+    this.type = 'babyface';
+    this.preload();
+    this.dialog = this.dialogs[0];
+};
+SleepingBabyNeg.prototype = new Level();
+SleepingBabyNeg.prototype.wincondition = function () {
+    for (var i = 0 ; i < board.nrows ; i++) {
+	for (var j = 0 ; j < board.ncols ; j++) {
+	    if (board[i][j] == COL_NEG) {
+		return false;
+	    }
+	}
+    }
+    return true;
+};
+SleepingBabyNeg.prototype.newpiece = function () {
+    return 3; // straight
+};
+SleepingBabyNeg.prototype.initialstate = [
+    ".............c.cnc.....",
+    "...............ccc.....",
+];
+SleepingBabyNeg.prototype.postload = function () {
+    Level.prototype.postload.call(this);
+    this.inscene.push(imgs[this.sun]);
+    this.inscene.push(imgs.moon);
+};
+SleepingBabyNeg.prototype.enter_tutorial = function () {
+    this.background(false);
+    this.moon_dialog("now here's a situation. you've got a hole in that ring, but you've already covered it with star food. you can't complete a ring above it, because that baby can't eat it unless it's right next to him. you need to try to use a clean-up piece.");
+    this.draw_scene();
+    imgs.moon.fillhook = function () {
+	lvl.moon_dialog("press enter to switch between normal pieces and clean-up pieces, then clear out that hole.");
+    };
+    this.dialog_animation = function () {
+	game.gotolater(game.tutorial2);
+	delete this.dialog_animation;
+	return true;
+    };
+    delete this.dialog;
+    return true;
+};
+
+SleepingBabyNeg.prototype.dialogs = [SleepingBabyNeg.prototype.enter_tutorial];
+
+// waking baby level
+var WakingBaby = function () {
+    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['baby',[cvs.ox,cvs.oy],[1,11]]];
+    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
+    this.type = 'babyface';
+    this.preload();
+    this.dialog = this.dialogs[0];
+    this.lines = 3;
+};
+WakingBaby.prototype = new Level();
+WakingBaby.prototype.postload = function () {
+    if (board != undefined) {
+	var saveboard = board;
+	Level.prototype.postload.call(this);
+	board = saveboard;
+    } else {
+	Level.prototype.postload.call(this);
+    }
+    this.inscene.push(imgs.moon);
+    this.inscene.push(imgs[this.sun]);
+};
+WakingBaby.prototype.dialogs = [];
+makeScene(WakingBaby.prototype.dialogs,
+	  [
+	      {
+		  moon: "there you go. i think if you feed this baby another three rings he should wake up, and we'll be good and toasty for a little while."
+	      },
+	  ],false);
+
 // woken baby level
 var WokenBaby = function () {
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['baby',[cvs.ox,cvs.oy],[1,11]]];
@@ -332,11 +419,12 @@ var WokenBaby = function () {
 WokenBaby.prototype = new Level();
 WokenBaby.prototype.postload = function () {
     Level.prototype.postload.call(this);
-    this.inscene.push(imgs[this.sun]);
-    this.inscene.push(imgs.moon);
     imgs[this.sun].seq = repeatN(9,80).concat([9,8,7,6,5,4,3,2,1,0,1,2,3,4,5,6,7,8,9]);
     imgs[this.sun].anispeed = 40;
+    this.inscene.push(imgs[this.sun]);
+    this.inscene.push(imgs.moon);
 };
+WokenBaby.prototype.dialogs = [];
 makeScene(WokenBaby.prototype.dialogs,
 	  [
 	      {
@@ -365,7 +453,6 @@ var STYLES = {
 	fire_nm: 'fire',
 	skip:0,
 	grid:'#222',
-	lines:1,
 	timer:60*3
     },
     manface:{

@@ -419,15 +419,12 @@ Board.prototype.jettison = function () {
     }
 };
 
-var ActivePiece = function (color) {
+var ActivePiece = function (color,type) {
     this.i = board.nrows-3; // one below the last
     this.j = -Math.round(board.ncols/4);
-    this.type = this.newpiece();
+    this.type = type;
     this.rot = 0;
     this.color = color;
-};
-ActivePiece.prototype.newpiece = function () {
-    return randN(this.pics.length);
 };
 ActivePiece.prototype.fall_howfar = function () {
     var orig = this.i, fellto = 0;
@@ -594,10 +591,13 @@ Input.prototype.parsedirs = function () {
 	}
     }
 };
+Input.prototype.reset = function () {
+    this.keyEvent = {};
+};
 
 var Game = function () {
     this.gotolater(this.loading);
-    this.lvls = [SleepingBaby,WokenBaby,StarMan];
+    this.lvls = [SleepingBaby,SleepingBabyNeg,WakingBaby,WokenBaby,StarMan];
     this.lvl = 0;
     lvl = new this.lvls[this.lvl]();
     setTimeout(this.callback,FRIENDLY);
@@ -699,7 +699,7 @@ Game.prototype.fall = function () {
 	board.setto(piece,piece.color);
 	board.jettison();
 	board.feast();
-	piece = new ActivePiece(lvl.color);
+	piece = new ActivePiece(lvl.color,lvl.newpiece());
 	this.returnlater();
 	lvl.render_play();
 	piece.render();
@@ -746,6 +746,7 @@ Game.prototype.waitcmd = function () {
     if (lvl.wincondition()) {
 	this.lvl++;
 	lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
+	input.reset();
 	this.gotolater(this.loading);
 	return;
     }
@@ -774,11 +775,57 @@ Game.prototype.tutorial1 = function () {
     piece.render();
     if (lvl.wincondition()) {
 	this.lvl++;
+	delete imgs.moon.fillhook;
 	lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
+	input.reset();
 	this.gotolater(this.loading);
 	return;
     }
 };
+Game.prototype.tutorial2 = function () {
+    this.handle_leftrightup();
+
+    if (input.dirs.dn) {
+	if (piece.color != COL_NEG) {
+	    imgs.moon.fillhook = function () {
+		lvl.moon_dialog("you need to press enter to make your piece a clean-up piece.");
+	    };
+	} else {
+	    var offsets = piece.get_offsets(), shouldwork = false;
+	    for (var i in offsets) {
+		if (board[0][realMod(piece.j+offsets[i][1],NCOLS)] == COL_NEG) {
+		    shouldwork = true;
+		}
+	    }
+	    if (shouldwork) {
+		this.startfall();
+	    } else {
+		imgs.moon.fillhook = function () {
+		    lvl.moon_dialog("you can try that in a minute, but first clear out that hole.");
+		};
+	    }
+	}
+    }
+
+    if (KEY.sp in input.keyEvent || KEY.en in input.keyEvent) {
+	lvl.switch_color();
+	delete input.keyEvent[KEY.sp];
+	delete input.keyEvent[KEY.en];
+    }
+
+    lvl.animate();
+    lvl.render_play();
+    piece.render();
+    if (lvl.wincondition()) {
+	this.lvl++;
+	delete imgs.moon.fillhook;
+	lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
+	input.reset();
+	this.gotolater(this.loading);
+	return;
+    }
+};
+
 
 
 imgs = {};
