@@ -618,25 +618,28 @@ Game.prototype.callback = function () {
 Game.prototype.loading = function () {
     if(lvl.load()) {
 	lvl.postload();
-	lvl.dialog();
+	lvl.dialog(false);
 	this.gotolater(this.dialog);
     }
 };
 Game.prototype.dialog = function () {
+    lvl.animate();
     if (KEY.en in input.keyEvent) {
 	delete input.keyEvent[KEY.en];
 	this.gotolater(this.dialog_animation);
 	lvl.last_update = Date.now();
 	lvl.begin_animation = lvl.last_update;
     }
+    lvl.dialog(false);
 };
 Game.prototype.dialog_animation = function () {
+    lvl.animate();
     if (KEY.en in input.keyEvent) {
 	delete input.keyEvent[KEY.en];
 	lvl.begin_animation -= 2000;
     }
     if (! lvl.dialog_animation()) {
-	if (! lvl.dialog()) {
+	if (! lvl.dialog(true)) {
 	    this.gotolater(this.waitcmd);
 	} else {
 	    this.gotolater(this.dialog);
@@ -701,8 +704,7 @@ Game.prototype.fall = function () {
 	board.feast();
 	piece = new ActivePiece(lvl.color,lvl.newpiece());
 	this.returnlater();
-	lvl.render_play();
-	piece.render();
+	lvl.render_play(0,false);
     } else {
 	lvl.render_play(0,false);
 	piece.render(this.fallen);
@@ -763,16 +765,13 @@ Game.prototype.tutorial1 = function () {
     if (input.dirs.dn) {
 	if (piece.fall_howfar() != 1) {
 	    imgs.moon.fillhook = function () {
-		lvl.moon_dialog("hold on a minute. there's no time limit here. you want to complete the innermost ring to wake him.");
+		lvl.moon_dialog("hold on a minute. there is no time limit here. you want to complete the innermost ring to feed him.");
 	    };
 	} else {
 	    this.startfall();
 	}
     }
 
-    lvl.animate();
-    lvl.render_play();
-    piece.render();
     if (lvl.wincondition()) {
 	this.lvl++;
 	delete imgs.moon.fillhook;
@@ -781,6 +780,9 @@ Game.prototype.tutorial1 = function () {
 	this.gotolater(this.loading);
 	return;
     }
+    lvl.animate();
+    lvl.render_play();
+    piece.render();
 };
 Game.prototype.tutorial2 = function () {
     this.handle_leftrightup();
@@ -801,7 +803,7 @@ Game.prototype.tutorial2 = function () {
 		this.startfall();
 	    } else {
 		imgs.moon.fillhook = function () {
-		    lvl.moon_dialog("you can try that in a minute, but first clear out that hole.");
+		    lvl.moon_dialog("clean-up pieces land on holes but pass through normal star food. place the piece above the hole to clear your way.");
 		};
 	    }
 	}
@@ -813,9 +815,6 @@ Game.prototype.tutorial2 = function () {
 	delete input.keyEvent[KEY.en];
     }
 
-    lvl.animate();
-    lvl.render_play();
-    piece.render();
     if (lvl.wincondition()) {
 	this.lvl++;
 	delete imgs.moon.fillhook;
@@ -824,6 +823,9 @@ Game.prototype.tutorial2 = function () {
 	this.gotolater(this.loading);
 	return;
     }
+    lvl.animate();
+    lvl.render_play();
+    piece.render();
 };
 
 
