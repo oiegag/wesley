@@ -106,6 +106,7 @@ var Sprite = function(src,origin,sheet) {
     this.spos = [0,0];
     this.ox = origin[0];
     this.oy = origin[1];
+    this.alpha = 1;
     this.rot = 0;
     this.tilt = 0; // a temporary rotation variable
     this.image.onload = function() {
@@ -122,8 +123,10 @@ Sprite.prototype.render = function () {
     ctx.save();
     ctx.translate(this.ox, this.oy);
     ctx.rotate(this.rot+this.tilt*DTHETA);
+    ctx.globalAlpha = this.alpha;
     ctx.drawImage(this.image,this.spos[0]*this.sw,this.spos[1]*this.sh,this.sw,this.sh,-this.sw/2,-this.sh/2,
 		   this.sw, this.sh);
+    ctx.globalAlpha = 1;
     ctx.restore();
 };
 Sprite.prototype.animate = function () {
@@ -597,10 +600,19 @@ Input.prototype.reset = function () {
 
 var Game = function () {
     this.gotolater(this.loading);
-    this.lvls = [SleepingBaby,SleepingBabyNeg,WakingBaby,WokenBaby,StarMan];
+//    this.lvls = [SleepingBaby,SleepingBabyNeg,WakingBaby,WokenBaby,StarMan];
+    this.lvls = [WokenBaby,BigBaby,StarMan];
     this.lvl = 0;
     lvl = new this.lvls[this.lvl]();
+    this.skip_dialog = false;
+    this.always_skip_dialog = false; // set skip dialog back to this value on entering a level
     setTimeout(this.callback,FRIENDLY);
+};
+Game.prototype.nextlevel = function () {
+    this.lvl++;
+    lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
+    input.reset();
+    this.gotolater(this.loading);
 };
 Game.prototype.gotolater = function (state) {
     this.state = [state];
@@ -621,29 +633,43 @@ Game.prototype.loading = function () {
 	lvl.dialog(false);
 	this.gotolater(this.dialog);
     }
+    if (this.skip_dialog) {
+	this.censor();
+    }
+};
+Game.prototype.censor = function () {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0,0,cvs.width,cvs.height);
 };
 Game.prototype.dialog = function () {
     lvl.animate();
-    if (KEY.en in input.keyEvent) {
+    if (KEY.en in input.keyEvent || this.skip_dialog) {
 	delete input.keyEvent[KEY.en];
 	this.gotolater(this.dialog_animation);
 	lvl.last_update = Date.now();
-	lvl.begin_animation = lvl.last_update;
+	lvl.began = lvl.last_update;
     }
     lvl.dialog(false);
+    if (this.skip_dialog) {
+	this.censor();
+    }
 };
 Game.prototype.dialog_animation = function () {
     lvl.animate();
-    if (KEY.en in input.keyEvent) {
+    if (KEY.en in input.keyEvent || this.skip_dialog) {
 	delete input.keyEvent[KEY.en];
-	lvl.begin_animation -= 2000;
+	lvl.began -= 2000;
     }
     if (! lvl.dialog_animation()) {
 	if (! lvl.dialog(true)) {
+	    this.skip_dialog = this.always_skip_dialog;
 	    this.gotolater(this.waitcmd);
 	} else {
 	    this.gotolater(this.dialog);
 	}
+    }
+    if (this.skip_dialog) {
+	this.censor();
     }
 };
 Game.prototype.rotate = function () {
@@ -676,7 +702,7 @@ Game.prototype.rotate = function () {
 	lvl.render_play();
 	piece.render();
     }
-    lvl.interp_palette();
+    lvl.interp_palette('dying',(lvl.timer-30)*1000);
 };
 Game.prototype.startrotate = function (val) {
     this.calllater(this.rotate);
@@ -709,9 +735,18 @@ Game.prototype.fall = function () {
 	lvl.render_play(0,false);
 	piece.render(this.fallen);
     }
-    lvl.interp_palette();
+    lvl.interp_palette('dying',(lvl.timer-30)*1000);
 };
 Game.prototype.gameover = function () {
+    lvl.narrate(lvl.gameovertext);
+    if (KEY.en in input.keyEvent) {
+	lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
+	this.skip_dialog = true;
+	imgs = {};
+	pats = {};
+	input.reset();
+	this.gotolater(this.loading);
+    }
 };
 Game.prototype.handle_leftrightup = function () {
     input.parsedirs();
@@ -726,6 +761,17 @@ Game.prototype.handle_leftrightup = function () {
     }
 };
 Game.prototype.waitcmd = function () {
+    if (lvl.wincondition()) {
+	this.nextlevel();
+	return;
+    }
+
+    if (lvl.losecondition()) {
+	console.log('game over');
+	this.gotolater(this.gameover);
+	return;
+    }
+
     this.handle_leftrightup();
 
     if (input.dirs.dn) {
@@ -741,23 +787,11 @@ Game.prototype.waitcmd = function () {
 	delete input.keyEvent[KEY.sp];
 	delete input.keyEvent[KEY.en];
     }
-    
+
+    lvl.interp_palette('dying',(lvl.timer-30)*1000);
     lvl.animate();
     lvl.render_play();
     piece.render();
-    if (lvl.wincondition()) {
-	this.lvl++;
-	lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
-	input.reset();
-	this.gotolater(this.loading);
-	return;
-    }
-
-    lvl.interp_palette();
-    if (lvl.losecondition()) {
-	console.log('game over');
-	this.gotolater(this.gameover);
-    }
 };
 Game.prototype.tutorial1 = function () {
     this.handle_leftrightup();
@@ -765,7 +799,7 @@ Game.prototype.tutorial1 = function () {
     if (input.dirs.dn) {
 	if (piece.fall_howfar() != 1) {
 	    imgs.moon.fillhook = function () {
-		lvl.moon_dialog("hold on a minute. there is no time limit here. you want to complete the innermost ring to feed him.");
+		lvl.moon_dialog("hold on. there is no time limit. you want to complete the innermost ring to feed him.");
 	    };
 	} else {
 	    this.startfall();
@@ -773,11 +807,8 @@ Game.prototype.tutorial1 = function () {
     }
 
     if (lvl.wincondition()) {
-	this.lvl++;
+	this.nextlevel();
 	delete imgs.moon.fillhook;
-	lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
-	input.reset();
-	this.gotolater(this.loading);
 	return;
     }
     lvl.animate();
@@ -790,7 +821,7 @@ Game.prototype.tutorial2 = function () {
     if (input.dirs.dn) {
 	if (piece.color != COL_NEG) {
 	    imgs.moon.fillhook = function () {
-		lvl.moon_dialog("you need to press enter to make your piece a clean-up piece.");
+		lvl.moon_dialog("you need to press enter or space to make your piece a clean-up piece.");
 	    };
 	} else {
 	    var offsets = piece.get_offsets(), shouldwork = false;
@@ -816,11 +847,8 @@ Game.prototype.tutorial2 = function () {
     }
 
     if (lvl.wincondition()) {
-	this.lvl++;
+	this.nextlevel();
 	delete imgs.moon.fillhook;
-	lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
-	input.reset();
-	this.gotolater(this.loading);
 	return;
     }
     lvl.animate();
