@@ -1,7 +1,7 @@
 // remove the no javascript warning
 document.getElementById("warning").style.display = "none";
 // constants
-var FRIENDLY = 15;
+var FRIENDLY = 2;
 
 var COL_NON = 0;
 var COL_COR = 1;
@@ -386,24 +386,6 @@ Board.prototype.rotate = function (off) {
 	}
     }
 };
-Board.prototype.feast = function () {
-    // remove bottom rows
-    var delrows = 0;
-    for (var i = 0 ; i < board.nrows ; i++) {
-	for (var j = 0 ; j < board.ncols && board[i][j] == COL_COR; j++);
-	if (j == board.ncols) {
-	    delrows++;
-	} else {
-	    break;
-	}
-    }
-    for (var i = 0 ; i < board.nrows-delrows ; i++) {
-	for (var j = 0 ; j < board.ncols ; j++) {
-	    board[i][j] = board[i+delrows][j];
-	}
-    }
-    lvl.lines -= delrows;
-};
 
 Board.prototype.jettison = function () {
     // all negatives with nothing above them are jettisoned off
@@ -601,7 +583,7 @@ Input.prototype.reset = function () {
 var Game = function () {
     this.gotolater(this.loading);
 //    this.lvls = [SleepingBaby,SleepingBabyNeg,WakingBaby,WokenBaby,StarMan];
-    this.lvls = [WokenBaby,BigBaby,StarMan];
+    this.lvls = [DoublePuzzle];
     this.lvl = 0;
     lvl = new this.lvls[this.lvl]();
     this.skip_dialog = false;
@@ -677,6 +659,7 @@ Game.prototype.rotate = function () {
     var now = Date.now();
     imgs[lvl.sun].tilt -= this.val*(now - this.last_update)*this.speed;
     this.last_update = now;
+
     if (Math.abs(imgs[lvl.sun].tilt) > 1) {
 	input.parsedirs();
 	if (this.val == 1 && input.down[KEY.rt]) {
@@ -727,7 +710,7 @@ Game.prototype.fall = function () {
 	piece.i = this.fallto;
 	board.setto(piece,piece.color);
 	board.jettison();
-	board.feast();
+	lvl.lines -= lvl.feast();
 	piece = new ActivePiece(lvl.color,lvl.newpiece());
 	this.returnlater();
 	lvl.render_play(0,false);
