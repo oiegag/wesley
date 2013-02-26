@@ -1,3 +1,163 @@
+var STYLES = {
+    sleepingbaby:{
+	sky:'#001',
+	sunfill: '#cff',
+	moonfill: '#cff',
+	corona:'#cff',
+	fire:'#660',
+	preview: '#8383f9',
+	grid:'#222',
+    },
+    babyface:{
+	sky:'#025',
+	sunfill: '#ffe16c',
+	moonfill: '#cff',
+	corona:'#e6c440',
+	fire:'#660',
+	preview: '#8383f9',
+	grid:'#037',
+    },
+    bigbaby:{
+	sky:'#035',
+	sunfill: '#ffe16c',
+	moonfill: '#cff',
+	corona:'#e6c440',
+	fire:'#660',
+	preview: '#8383f9',
+	grid:'#037',
+    },
+    manface:{
+	sky:'#add6ff',
+	sunfill: '#fb0',
+	moonfill: '#eee',
+	corona:'#fc0',
+	fire:'#660',
+	preview: '#8383f9',
+	grid:'#aaa',
+    },
+    bigman:{
+	sky:'#fc9',
+	sunfill: '#fa0',
+	moonfill: '#cff',
+	corona:'#fb0',
+	fire:'#660',
+	preview: '#c96',
+	grid:'#aaa',
+    },
+    giant:{
+	sky:'#f70',
+	sunfill: '#f20',
+	moonfill: '#fb9',
+	corona:'#f30',
+	fire:'#660',
+	preview: '#8383f9',
+	grid:'#a20',
+    },
+    biggiant:{
+	sky:'#f70',
+	sunfill: '#f20',
+	moonfill: '#fb9',
+	corona:'#f30',
+	fire:'#660',
+	preview: '#8383f9',
+	grid:'#a20',
+    },
+    white:{
+	sky:'#fff',
+	sunfill: '#fff',
+	moonfill: '#fff',
+	corona:'#fff',
+	fire:'#fff',
+	preview: '#fff',
+	grid:'#fff',
+    },
+    deadmoon:{
+	sky:'#f70',
+	sunfill: '#f20',
+	moonfill: '#520',
+	corona:'#f30',
+	fire:'#660',
+	preview: '#8383f9',
+	grid:'#a20',
+    },
+    skull:{
+	sky:'#001',
+	sunfill: '#cff',
+	moonfill: '#cff',
+	corona:'#99ff33',
+	fire:'#660',
+	preview: '#8383f9',
+	grid:'#222',
+    },
+    dying:{
+	sky:'#f70',
+	sunfill: '#f30',
+	moonfill: '#cff',
+	corona:'#f30',
+	fire:'#660',
+	preview: '#8383f9',
+	grid:'#a20',
+    }
+};
+
+var SETTINGS = {
+    baby:{
+	sun:'baby',
+	corona_nm:'rays_sun',
+	fire_nm:'fire',
+	skip:0,
+	timer:1/0
+    },
+    bigbaby:{
+	sun:'bigbaby',
+	corona_nm:'rays_sun',
+	fire_nm:'fire',
+	skip:1,
+	timer:5*60,
+	lines:4
+    },
+    man:{
+	sun:'man',
+	corona_nm:'rays_sun',
+	fire_nm:'fire',
+	skip:2,
+	lines:6,
+	timer:60*6
+    },
+    bigman:{
+	sun:'bigman',
+	corona_nm:'rays_sun',
+	fire_nm:'fire',
+	skip:3,
+	lines:6,
+	timer:60*6
+    },
+    giant:{
+	sun:'giant',
+	corona_nm:'rays_sun',
+	fire_nm:'fire',
+	skip:4,
+	lines:6,
+	timer:60*6
+    },
+    biggiant:{
+	sun:'biggiant',
+	corona_nm:'rays_sun',
+	fire_nm:'fire',
+	skip:5,
+	lines:6,
+	timer:60*6
+    },
+    skull:{
+	sun:'skull',
+	corona_nm:'rays_sun',
+	fire_nm:'fire',
+	skip:0,
+	timer:90
+    },
+};
+
+
 var Level = function () {
 };
 Level.prototype.preload = function () {
@@ -286,6 +446,42 @@ Level.prototype.animate_set = function (setwhat,from,to,inthesems) {
 
     return (tfrac < 1);
 };
+Level.prototype.shakeout = function () {
+    var now = Date.now(), tfrac = (now - this.began)/1000;
+    this.background(false);
+    this.bg.render();
+    this.draw_scene();
+
+    if (tfrac < 1) {
+	ctx.fillStyle = '#fff'
+	ctx.globalAlpha = 1-tfrac;
+	ctx.fillRect(0,0,cvs.width,cvs.height);
+	ctx.globalAlpha = 1;
+    }
+    return (tfrac < 1);
+};
+Level.prototype.shakenbake = function (changescene) {
+    this.background(false);
+    this.bg.render();
+    this.draw_scene();
+
+    var now = Date.now(), tfrac = (now - this.began)/2500;
+    var sfrac = tfrac*tfrac;
+
+    ctx.fillStyle = '#fff'
+    ctx.globalAlpha = sfrac;
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    ctx.globalAlpha = 1;
+
+
+    imgs[this.sun].ox = cvs.ox + gaussian()*100*sfrac;
+    imgs[this.sun].oy = cvs.oy + gaussian()*100*sfrac;
+
+    if (tfrac > 1) {
+	changescene.call(this);
+    }
+    return (tfrac < 1);
+};
 Level.prototype.draw_scene = function () {
     for (var i in this.inscene) {
 	this.inscene[i].render();
@@ -404,7 +600,7 @@ var makeDialog = function (description,next) {
 	if (description.action == undefined) {
 	    delete this.dialog_animation;
 	} else if (description.action.constructor == Array) {
-	    this.actions = description.action;
+	    this.actions = [].concat(description.action); // make a copy of this array
 	    this.dialog_animation = function () {
 		if (this.actions.length == 0) {
 		    return false;
@@ -437,6 +633,9 @@ var makeScene = function (dialogs,description,continuation) {
     }
 };
 		     
+
+// ****************************** BEGIN LEVELS ***********************************************
+
 
 
 // sleeping baby level tutorial 1
@@ -686,7 +885,6 @@ var BigBaby = function () {
     this.settingtype = 'baby';
     this.preload();
     this.dialog = this.dialogs[0];
-    this.lines = 4;
 };
 BigBaby.prototype = new Level();
 BigBaby.prototype.postload = function () {
@@ -911,7 +1109,6 @@ var StarMan = function () {
     this.settingtype = 'bigbaby';
     this.preload();
     this.dialog = this.dialogs[0];
-    this.lines = 6;
 };
 StarMan.prototype = new Level();
 StarMan.prototype.postload = function () {
@@ -1031,7 +1228,6 @@ var BigMan = function () {
     this.settingtype = 'man';
     this.preload();
     this.dialog = this.dialogs[0];
-    this.lines = 6;
 };
 BigMan.prototype = new Level();
 BigMan.prototype.postload = function () {
@@ -1123,7 +1319,6 @@ var Giant = function () {
     this.settingtype = 'bigman';
     this.preload();
     this.dialog = this.dialogs[0];
-    this.lines = 6;
 };
 Giant.prototype = new Level();
 Giant.prototype.newpiece = function () {
@@ -1193,10 +1388,20 @@ var DoublePuzzle = function () {
     this.settingtype = 'giant';
     this.preload();
     this.dialog = this.dialogs[0];
-    this.lines = 6;
     this.failure = false;
 }
 DoublePuzzle.prototype = new Level();
+DoublePuzzle.prototype.losecondition = function () {
+    var now = Date.now();
+    if (this.failure) {
+	return true;
+    }
+    if ((now - this.began)/1000 > this.timer) {
+	return true;
+    } else {
+	return false;
+    }
+};
 DoublePuzzle.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.sky;
@@ -1234,122 +1439,162 @@ makeScene(DoublePuzzle.prototype.dialogs,
 	      {
 		  sun: "you must feed wetsley double rings!",
 		  action: ["moon_set","moon_burn3","moon_burn2","moon_burn"]
+	      },
+	      {
+		  narrate: "horrified by moon's demise, but given no time to grieve, you begin to feed wetsley only double or higher rings."
 	      }
 	  ],false);
 
 
-var STYLES = {
-    sleepingbaby:{
-	sky:'#001',
-	sunfill: '#cff',
-	moonfill: '#cff',
-	corona:'#cff',
-	fire:'#660',
-	preview: '#8383f9',
-	grid:'#222',
-    },
-    babyface:{
-	sky:'#025',
-	sunfill: '#ffe16c',
-	moonfill: '#cff',
-	corona:'#e6c440',
-	fire:'#660',
-	preview: '#8383f9',
-	grid:'#037',
-    },
-    bigbaby:{
-	sky:'#035',
-	sunfill: '#ffe16c',
-	moonfill: '#cff',
-	corona:'#e6c440',
-	fire:'#660',
-	preview: '#8383f9',
-	grid:'#037',
-    },
-    manface:{
-	sky:'#add6ff',
-	sunfill: '#fb0',
-	moonfill: '#eee',
-	corona:'#fc0',
-	fire:'#660',
-	preview: '#8383f9',
-	grid:'#aaa',
-    },
-    bigman:{
-	sky:'#fc9',
-	sunfill: '#fa0',
-	moonfill: '#cff',
-	corona:'#fb0',
-	fire:'#660',
-	preview: '#c96',
-	grid:'#aaa',
-    },
-    giant:{
-	sky:'#f70',
-	sunfill: '#f20',
-	moonfill: '#fb9',
-	corona:'#f30',
-	fire:'#660',
-	preview: '#8383f9',
-	grid:'#a20',
-    },
-    deadmoon:{
-	sky:'#f70',
-	sunfill: '#f20',
-	moonfill: '#520',
-	corona:'#f30',
-	fire:'#660',
-	preview: '#8383f9',
-	grid:'#a20',
-    },
-    dying:{
-	sky:'#f70',
-	sunfill: '#f30',
-	moonfill: '#cff',
-	corona:'#f30',
-	fire:'#660',
-	preview: '#8383f9',
-	grid:'#a20',
+
+
+// wetsley demands triple rings
+var TriplePuzzle = function () {
+    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['giant',[cvs.ox,cvs.oy]],['biggiant',[cvs.ox,cvs.oy]]];
+    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
+    this.styletype = 'giant';
+    this.settingtype = 'giant';
+    this.preload();
+    this.dialog = this.dialogs[0];
+    this.failure = false;
+}
+TriplePuzzle.prototype = new Level();
+TriplePuzzle.prototype.losecondition = function () {
+    var now = Date.now();
+    if (this.failure) {
+	return true;
+    }
+    if ((now - this.began)/1000 > this.timer) {
+	return true;
+    } else {
+	return false;
     }
 };
-
-var SETTINGS = {
-    baby:{
-	sun:'baby',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
-	skip:0,
-	timer:1/0
-    },
-    bigbaby:{
-	sun:'bigbaby',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
-	skip:1,
-	timer:5*60,
-    },
-    man:{
-	sun:'man',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
-	skip:2,
-	lines:6,
-	timer:60*6
-    },
-    bigman:{
-	sun:'bigman',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
-	skip:3,
-	lines:6,
-	timer:60*6
-    },
-    giant:{
-	sun:'giant',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
-	skip:4,
-	lines:6,
-	timer:60*6
-    },
+TriplePuzzle.prototype.postload = function () {
+    Level.prototype.postload.call(this);
+    this.bg = imgs.sky;
+    this.inscene.push(imgs[this.sun]);
 };
+TriplePuzzle.prototype.feast = function () {
+    var ret = Level.prototype.feast();
+    if (ret <= 2 && ret > 0) {
+	this.failure = true;
+    }
+    return ret;
+};
+TriplePuzzle.prototype.dialogs = [];
+makeScene(TriplePuzzle.prototype.dialogs,
+	  [
+	      {
+		  narrate: "exhausted and friendless, you go to fetch more puzzle pieces for tomorrow. when night comes, you are tired, so you sleep.",
+		  action: 'fade_out',
+		  args: function () {
+		      this.settingtype = 'biggiant';
+		      this.reset_settings();
+
+		      this.refresh_board();
+		      board.load_initial([
+			  ".c....cccccccccccccccc",
+			  "..........c.........c.",
+		      ]);
+
+		      this.styletype = 'biggiant';
+		      this.reset_style();
+		      this.add_fill_hooks();
+		      this.inscene = [imgs[this.sun]];
+		  }
+	      },
+	      {
+		  narrate: "when you wake, wetsley is bigger than ever. unsure what else you can do, you start to feed him."
+	      },
+	      {
+		  sun: "only triples.",
+		  narrate: "when wetsley speaks, he sounds exhausted. 'just triples,' you say."
+	      }
+	  ],false);
+
+
+
+// wetsley eats his last ring and becomes a toxic planetary nebula
+var CleanupPuzzle = function () {
+    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['stars',[cvs.width/2,cvs.height/2],[1,3]],
+		    ['biggiant',[cvs.ox,cvs.oy]],['skull',[cvs.ox, cvs.oy]]];
+    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
+    this.styletype = 'biggiant';
+    this.settingtype = 'biggiant';
+    this.preload();
+    this.dialog = this.dialogs[0];
+}
+CleanupPuzzle.prototype = new Level();
+CleanupPuzzle.prototype.postload = function () {
+    Level.prototype.postload.call(this);
+    this.bg = imgs.sky;
+    this.inscene.push(imgs[this.sun]);
+};
+CleanupPuzzle.prototype.dialogs = [];
+makeScene(CleanupPuzzle.prototype.dialogs,
+	  [
+	      {
+		  narrate: "as wetsley absorbs the last triple, he does not look well.",
+		  action: ['shakeout','shakenbake'],
+		  args: function () {
+		      this.settingtype = 'skull';
+		      this.reset_settings();
+		      this.bg = imgs.stars;
+		      this.bg.seq = [0,1,0,2];
+		      this.bg.anispeed = 200;
+
+		      this.refresh_board();
+		      board.load_initial([
+			  ".cnccnnncccccccccccccc",
+			  ".cncccccccccccccnnnccc",
+			  ".cccn.cccnnncccccccccc",
+			  ".cncn.ccccccccccnnnccc",
+			  ".cccn.cccnnncccccccccc",
+			  ".c..c.ccccccccc....ccc",
+			  "..........c.........c.",
+		      ]);
+
+		      this.styletype = 'skull';
+		      this.reset_style();
+		      this.add_fill_hooks();
+		      this.inscene = [imgs[this.sun]];
+		  }
+	      },
+	      {
+		  narrate: "when your vision returns, you see that wetsley has burst into a disgusting green smoke surrounding the tiny skull of the star baby that you had ignored for millenia.\n \n before you can begin to feel relief, you realize the smoke is toxic. use clean-up pieces to remove it quickly. you have too much to live for!"
+	      }
+	  ], false);
+
+
+
+
+// waiting
+var Waiting = function () {
+    this.newimgs = [['stars',[cvs.width/2,cvs.height/2],[1,3]],['skull',[cvs.ox, cvs.oy]]];
+    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
+    this.styletype = 'sleepingbaby';
+    this.settingtype = 'skull';
+    this.preload();
+    this.dialog = this.dialogs[0];
+    this.lines = 0;
+    this.timer = 1/0;
+}
+Waiting.prototype = new Level();
+Waiting.prototype.postload = function () {
+    Level.prototype.postload.call(this);
+    this.bg = imgs.stars;
+    this.bg.seq = [0,1,0,2];
+    this.bg.anispeed = 200;
+    this.inscene.push(imgs[this.sun]);
+};
+Waiting.prototype.dialogs = [];
+makeScene(Waiting.prototype.dialogs,
+	  [
+	      {
+		  narrate: "with the smoke cleared, you are safe, but you are alone with only a narrator to remind you of your misery.\n \n you orbit the skull for centuries. fortunately, the centuries are too uninteresting to narrate, so that summary is all you will have to read.",
+	      },
+	      {
+		  narrate: "finally, even your narrator leaves you alone with your star baby skull and your puzzle pieces to do as you wish."
+	      }
+	  ], false);

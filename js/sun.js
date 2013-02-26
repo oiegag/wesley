@@ -40,6 +40,16 @@ cvs.oy = cvs.height*.9;
 
 
 // utilities
+var gaussian = function () {
+    // well.. close enough
+    var out = 0;
+    for (var i = 0 ; i < 4 ; i++) {
+	out += Math.random() - 0.5;
+    }
+    out *= 1/4;
+    return out;
+};
+
 var css2rgb = function (css) {
     rgb = [];
     if (css.length == 4) {
@@ -583,7 +593,7 @@ Input.prototype.reset = function () {
 var Game = function () {
     this.gotolater(this.loading);
 //    this.lvls = [SleepingBaby,SleepingBabyNeg,WakingBaby,WokenBaby,StarMan];
-    this.lvls = [DoublePuzzle];
+    this.lvls = [Waiting];
     this.lvl = 0;
     lvl = new this.lvls[this.lvl]();
     this.skip_dialog = false;
@@ -592,9 +602,63 @@ var Game = function () {
 };
 Game.prototype.nextlevel = function () {
     this.lvl++;
+    if (this.lvl == this.lvls.length) {
+	this.gotolater(this.transition_to_credits);
+	this.began = Date.now();
+	return;
+    }
     lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
     input.reset();
     this.gotolater(this.loading);
+};
+Game.prototype.transition_to_credits = function () {
+    var now = Date.now(), tfrac = (now - this.began)/1000;
+
+    ctx.lineWidth = 1.25;
+    ctx.strokeStyle = '#000';
+    board.ox = cvs.ox
+    board.oy = cvs.oy;
+    board.draw_arc(2*tfrac,0,2*PI);
+    ctx.fillStyle = '#000';
+    ctx.fill();
+
+    if (tfrac > 1) {
+	this.draw_credits();
+	this.gotolater(this.returntomenu);
+    }
+};
+Game.prototype.textLeft = function (strs,font,startx,starty) {
+    // draw left justified text
+    var x = startx, y = starty;
+    ctx.font = font + 'px mine';
+    ctx.fillStyle = '#fff';
+    for (var i in strs) {
+	ctx.fillText(strs[i], x, y+font);
+	y += font;
+    }
+};
+Game.prototype.textRight = function (strs,font,endx,starty) {
+    // draw left justified text
+    var x = endx, y = starty;
+    ctx.font = font + 'px mine';
+    ctx.fillStyle = '#fff';
+    for (var i in strs) {
+	var val = ctx.measureText(strs[i]);
+	ctx.fillText(strs[i], x-val.width, y+font);
+	y += font;
+    }
+};
+Game.prototype.draw_credits = function () {
+    ctx.fillStyle = '#001';
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    this.textLeft(['mike mcfadden','kate mcfadden','mike and kate','','','','this work was made possible by:','inkscape, fontforge, chromium'], 40, 20, 100);
+    this.textRight(['code,music','art','story,sound effects'], 40, cvs.width-20, 100);
+};
+Game.prototype.returntomenu = function () {
+    if (KEY.en in input.keyEvent || this.skip_dialog) {
+	delete input.keyEvent[KEY.en];
+	console.log('return to menu');
+    }
 };
 Game.prototype.gotolater = function (state) {
     this.state = [state];
@@ -723,7 +787,7 @@ Game.prototype.fall = function () {
 Game.prototype.gameover = function () {
     lvl.narrate(lvl.gameovertext);
     if (KEY.en in input.keyEvent) {
-	lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
+	lvl = new this.lvls[this.lvl]();
 	this.skip_dialog = true;
 	imgs = {};
 	pats = {};
