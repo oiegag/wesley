@@ -1,7 +1,7 @@
 // remove the no javascript warning
 document.getElementById("warning").style.display = "none";
 // constants
-var FRIENDLY = 2;
+var FRIENDLY = 15;
 
 var COL_NON = 0;
 var COL_COR = 1;
@@ -40,6 +40,18 @@ cvs.oy = cvs.height*.9;
 
 
 // utilities
+var addOne = function (array,what) {
+    var where = array.lastIndexOf(what);
+    if (where == -1) {
+	array.push(what);
+    }
+};
+
+var removeAll = function(array,ofwhat) {
+    array = array.filter(function (x) {return x != ofwhat;});
+    return array;
+};
+
 var gaussian = function () {
     // well.. close enough
     var out = 0;
@@ -591,9 +603,12 @@ Input.prototype.reset = function () {
 };
 
 var Game = function () {
-    this.gotolater(this.loading);
-//    this.lvls = [SleepingBaby,SleepingBabyNeg,WakingBaby,WokenBaby,StarMan];
-    this.lvls = [Waiting];
+//    this.gotolater(this.loading);
+    this.gotolater(this.mainmenu);
+    this.selected = 0;
+    this.lvls = [SleepingBaby,SleepingBabyNeg,WakingBaby,WokenBaby,BigBaby,MoonSucks,AnotherDay,AnotherPuzzle,
+		 StarMan,WesleyPuzzle,BigMan,BigManPuzzle,
+		 Giant,DoublePuzzle,TriplePuzzle,CleanupPuzzle,Waiting];
     this.lvl = 0;
     lvl = new this.lvls[this.lvl]();
     this.skip_dialog = false;
@@ -604,6 +619,7 @@ Game.prototype.nextlevel = function () {
     this.lvl++;
     if (this.lvl == this.lvls.length) {
 	this.gotolater(this.transition_to_credits);
+	input.reset();
 	this.began = Date.now();
 	return;
     }
@@ -624,24 +640,51 @@ Game.prototype.transition_to_credits = function () {
 
     if (tfrac > 1) {
 	this.draw_credits();
-	this.gotolater(this.returntomenu);
+	input.reset();
+	this.gotolater(this.mainmenu);
+	this.calllater(this.returntomenu);
     }
 };
-Game.prototype.textLeft = function (strs,font,startx,starty) {
+
+Game.prototype.textLeft = function (strs,font,startx,starty,color) {
     // draw left justified text
     var x = startx, y = starty;
     ctx.font = font + 'px mine';
-    ctx.fillStyle = '#fff';
+    if (color == undefined) {
+	ctx.fillStyle = '#fff';
+    } else {
+	ctx.fillStyle = color;
+    }
     for (var i in strs) {
 	ctx.fillText(strs[i], x, y+font);
 	y += font;
     }
 };
-Game.prototype.textRight = function (strs,font,endx,starty) {
+Game.prototype.textCenter = function (strs,font,startx,starty,color) {
+    // draw left justified text
+    var x = startx, y = starty;
+    ctx.font = font + 'px mine';
+    if (color == undefined) {
+	ctx.fillStyle = '#fff';
+    } else {
+	ctx.fillStyle = color;
+    }
+    for (var i in strs) {
+	var val = ctx.measureText(strs[i]);
+	ctx.fillText(strs[i], x-val.width/2, y+font);
+	y += font;
+    }
+};
+Game.prototype.textRight = function (strs,font,endx,starty,color) {
     // draw left justified text
     var x = endx, y = starty;
     ctx.font = font + 'px mine';
-    ctx.fillStyle = '#fff';
+
+    if (color == undefined) {
+	ctx.fillStyle = '#fff';
+    } else {
+	ctx.fillStyle = color;
+    }
     for (var i in strs) {
 	var val = ctx.measureText(strs[i]);
 	ctx.fillText(strs[i], x-val.width, y+font);
@@ -649,15 +692,32 @@ Game.prototype.textRight = function (strs,font,endx,starty) {
     }
 };
 Game.prototype.draw_credits = function () {
-    ctx.fillStyle = '#001';
+    ctx.fillStyle = '#e4ce9a';
     ctx.fillRect(0,0,cvs.width,cvs.height);
-    this.textLeft(['mike mcfadden','kate mcfadden','mike and kate','','','','this work was made possible by:','inkscape, fontforge, chromium'], 40, 20, 100);
-    this.textRight(['code,music','art','story,sound effects'], 40, cvs.width-20, 100);
+    this.textLeft(['mike mcfadden','kate mcfadden','mike and kate','','','','this work was made possible by:','inkscape, fontforge, chromium'], 40, 20, 100,'#43190b');
+    this.textRight(['code,music','art','story,sound effects'], 40, cvs.width-20, 100, '#43190b');
+};
+Game.prototype.mainmenu = function () {
+    var selections = ['new game','options','credits'];
+
+    ctx.fillStyle = '#e4ce9a';
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    this.textCenter(selections, 40, cvs.width/2, cvs.height*0.6, '#43190b');
+    this.textCenter(['raising wesley'], 100, cvs.width/2, cvs.height*0.3,'#43190b');
+    this.textCenter([selections[this.selected]],40, cvs.width/2,cvs.height*0.6+40*this.selected, '#a00');
+    if (KEY.dn in input.keyEvent) {
+	delete input.keyEvent[KEY.dn];
+	this.selected = realMod(this.selected+1,3);
+    }
+    if (KEY.up in input.keyEvent) {
+	delete input.keyEvent[KEY.up];
+	this.selected = realMod(this.selected-1,3);
+    }
 };
 Game.prototype.returntomenu = function () {
     if (KEY.en in input.keyEvent || this.skip_dialog) {
 	delete input.keyEvent[KEY.en];
-	console.log('return to menu');
+	this.returnlater();
     }
 };
 Game.prototype.gotolater = function (state) {

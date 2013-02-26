@@ -82,9 +82,18 @@ var STYLES = {
     },
     skull:{
 	sky:'#001',
-	sunfill: '#cff',
+	sunfill: '#eff',
 	moonfill: '#cff',
-	corona:'#99ff33',
+	corona:'#030',
+	fire:'#660',
+	preview: '#8383f9',
+	grid:'#222',
+    },
+    skull_nontoxic:{
+	sky:'#001',
+	sunfill: '#eff',
+	moonfill: '#cff',
+	corona:'#eff',
 	fire:'#660',
 	preview: '#8383f9',
 	grid:'#222',
@@ -221,6 +230,13 @@ Level.prototype.startloading = function (these,constructor,where) {
     }
     return loaded;
 };
+Level.prototype.moons_hook = function () {
+    ctx.lineWidth = 1.25;
+    ctx.fillStyle = lvl.moonfill;
+    ctx.beginPath();
+    ctx.arc(this.ox, this.oy, 78, 0, 2*PI);
+    ctx.fill();
+};
 Level.prototype.add_fill_hooks = function () {
     imgs[this.sun].fillhook = function () {
 	ctx.lineWidth = 1.25;
@@ -233,13 +249,7 @@ Level.prototype.add_fill_hooks = function () {
 
 	board.render(this.tilt*DTHETA);
     };
-    imgs.moon.fillhook = function () {
-	ctx.lineWidth = 1.25;
-	ctx.fillStyle = lvl.moonfill;
-	ctx.beginPath();
-	ctx.arc(this.ox, this.oy, 78, 0, 2*PI);
-	ctx.fill();
-    }
+    imgs.moon.fillhook = Level.prototype.moons_hook;
 };
 Level.prototype.load = function() {
     // generic load of the newimgs/newpats things
@@ -488,7 +498,7 @@ Level.prototype.draw_scene = function () {
     }
 };
 Level.prototype.moon_rise = function () {
-    this.inscene.moon = imgs.moon;
+    addOne(this.inscene,imgs.moon);
     return this.animate_rise(imgs.moon, [0.08*cvs.width,1.3*cvs.height],
 			     [0.08*cvs.width,0.9*cvs.height], 800);
 };
@@ -496,12 +506,12 @@ Level.prototype.moon_set = function () {
     var ret = this.animate_set(imgs.moon, [0.08*cvs.width,0.9*cvs.height],
 				[0.08*cvs.width,1.3*cvs.height], 800);
     if (ret == false) {
-	delete this.inscene.moon;
+	removeAll(this.inscene,this.inscene.moon);
     }
     return ret;
 };
 Level.prototype.sun_rise = function () {
-    this.inscene.sun = imgs[this.sun];
+    addOne(this.inscene,imgs[this.sun]);
     return this.animate_rise(imgs[this.sun], [cvs.width/2,1.3*cvs.height],
 			     [cvs.width/2,0.9*cvs.height], 600);
 };
@@ -509,7 +519,7 @@ Level.prototype.sun_set = function () {
     var ret = this.animate_set(imgs[this.sun], [cvs.width/2,0.9*cvs.height],
 				[cvs.width/2,1.3*cvs.height],800);
     if (ret == false) {
-	delete this.inscene.sun;
+	removeAll(this.inscene,this.inscene.sun);
     }
     return ret;
 };
@@ -702,6 +712,7 @@ SleepingBaby.prototype.enter_tutorial = function (update) {
     this.dialog_animation = function () {
 	imgs.moon.fillhook = function () {
 	    lvl.moon_dialog("try feeding him this one. use left and right to maneuver. up rotates the piece. when you like your position, press down to launch.");
+	    Level.prototype.moons_hook.call(this);
 	};
 	game.gotolater(game.tutorial1);
 	delete this.dialog_animation;
@@ -761,6 +772,7 @@ SleepingBabyNeg.prototype.enter_tutorial = function (update) {
     this.dialog_animation = function () {
 	imgs.moon.fillhook = function () {
 	    lvl.moon_dialog("use a clean-up piece to fix your mess.\n \n press enter or space to switch between normal pieces and clean-up pieces, then open up that hole.");
+	    Level.prototype.moons_hook.call(this);
 	};
 	game.gotolater(game.tutorial2);
 	delete this.dialog_animation;
@@ -953,7 +965,7 @@ makeScene(BigBaby.prototype.dialogs,
 
 
 // moon turns out to suck at feeding
-var MoonSucks1 = function () {
+var MoonSucks = function () {
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['stars',[cvs.width/2,cvs.height/2],[1,3]],
 		   ['bigbaby',[cvs.ox,cvs.oy],[1,11]]];
     this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
@@ -964,12 +976,12 @@ var MoonSucks1 = function () {
     this.lines = 3;
     this.piececount = 0;
 }
-MoonSucks1.prototype = new Level();
-MoonSucks1.prototype.newpiece = function () {
+MoonSucks.prototype = new Level();
+MoonSucks.prototype.newpiece = function () {
     var pieces = [3,3,3];
     return pieces[this.piececount++]; // cup piece
 };
-MoonSucks1.prototype.postload = function () {
+MoonSucks.prototype.postload = function () {
     Level.prototype.postload.call(this);
     imgs[this.sun].seq = [0,1,2,3,4,5,6,7,8,9,10].concat(repeatN(10,80)).concat([10,9,8,7,6,5,4,3,2,1]);
     imgs[this.sun].anispeed = 40;
@@ -982,8 +994,8 @@ MoonSucks1.prototype.postload = function () {
     }
     this.inscene.push(imgs[this.sun]);
 };
-MoonSucks1.prototype.dialogs = [];
-makeScene(MoonSucks1.prototype.dialogs,
+MoonSucks.prototype.dialogs = [];
+makeScene(MoonSucks.prototype.dialogs,
 	  [
 	      {
 		  narrate: "as you finish your last ring, you notice you are running low on pieces.",
@@ -1047,7 +1059,7 @@ makeScene(AnotherDay.prototype.dialogs,
 		  narrate: "annoyed by moon's incompetence, you leave to collect more puzzle pieces for tomorrow. when night comes, you are tired, so you sleep.",
 		  action: 'fade_out',
 		  args: function () {
-		      delete this.inscene.moon;
+		      removeAll(this.inscene, this.inscene.moon);
 		  }
 	      },
 	      {
@@ -1526,6 +1538,16 @@ var CleanupPuzzle = function () {
     this.dialog = this.dialogs[0];
 }
 CleanupPuzzle.prototype = new Level();
+CleanupPuzzle.prototype.wincondition = function () {
+    for (var i = 0 ; i < board.nrows ; i++) {
+	for (var j = 0 ; j < board.ncols ; j++) {
+	    if (board[i][j] != COL_NON) {
+		return false;
+	    }
+	}
+    }
+    return true;
+};
 CleanupPuzzle.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.sky;
@@ -1573,11 +1595,11 @@ makeScene(CleanupPuzzle.prototype.dialogs,
 var Waiting = function () {
     this.newimgs = [['stars',[cvs.width/2,cvs.height/2],[1,3]],['skull',[cvs.ox, cvs.oy]]];
     this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
-    this.styletype = 'sleepingbaby';
+    this.styletype = 'skull_nontoxic';
     this.settingtype = 'skull';
     this.preload();
     this.dialog = this.dialogs[0];
-    this.lines = 0;
+    this.lines = 10;
     this.timer = 1/0;
 }
 Waiting.prototype = new Level();
