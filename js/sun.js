@@ -7,6 +7,9 @@ var COL_NON = 0;
 var COL_COR = 1;
 var COL_NEG = 2;
 
+var MENUFILL = '#43190b';
+var MENUBG = '#e4ce9a';
+var MENUSELECTED = '#a00';
 var PI = Math.PI;
 var NCOLS = 22;
 var DTHETA = 2*PI/NCOLS;
@@ -603,16 +606,18 @@ Input.prototype.reset = function () {
 };
 
 var Game = function () {
-//    this.gotolater(this.loading);
     this.gotolater(this.mainmenu);
     this.selected = 0;
     this.lvls = [SleepingBaby,SleepingBabyNeg,WakingBaby,WokenBaby,BigBaby,MoonSucks,AnotherDay,AnotherPuzzle,
 		 StarMan,WesleyPuzzle,BigMan,BigManPuzzle,
 		 Giant,DoublePuzzle,TriplePuzzle,CleanupPuzzle,Waiting];
     this.lvl = 0;
-    lvl = new this.lvls[this.lvl]();
     this.skip_dialog = false;
     this.always_skip_dialog = false; // set skip dialog back to this value on entering a level
+    this.music = true;
+    this.sfx = true;
+
+    lvl = new this.lvls[this.lvl]();
     setTimeout(this.callback,FRIENDLY);
 };
 Game.prototype.nextlevel = function () {
@@ -692,19 +697,19 @@ Game.prototype.textRight = function (strs,font,endx,starty,color) {
     }
 };
 Game.prototype.draw_credits = function () {
-    ctx.fillStyle = '#e4ce9a';
+    ctx.fillStyle = MENUBG;
     ctx.fillRect(0,0,cvs.width,cvs.height);
-    this.textLeft(['mike mcfadden','kate mcfadden','mike and kate','','','','this work was made possible by:','inkscape, fontforge, chromium'], 40, 20, 100,'#43190b');
-    this.textRight(['code,music','art','story,sound effects'], 40, cvs.width-20, 100, '#43190b');
+    this.textLeft(['mike mcfadden','kate mcfadden','mike and kate','','','','this work was made possible by:','inkscape, fontforge, chromium'], 40, 20, 100, MENUFILL);
+    this.textRight(['code,music','art','story,sound effects'], 40, cvs.width-20, 100, MENUFILL);
 };
 Game.prototype.mainmenu = function () {
     var selections = ['new game','options','credits'];
 
-    ctx.fillStyle = '#e4ce9a';
+    ctx.fillStyle = MENUBG;
     ctx.fillRect(0,0,cvs.width,cvs.height);
-    this.textCenter(selections, 40, cvs.width/2, cvs.height*0.6, '#43190b');
-    this.textCenter(['raising wesley'], 100, cvs.width/2, cvs.height*0.3,'#43190b');
-    this.textCenter([selections[this.selected]],40, cvs.width/2,cvs.height*0.6+40*this.selected, '#a00');
+    this.textCenter(selections, 40, cvs.width/2, cvs.height*0.6, MENUFILL);
+    this.textCenter(['raising wesley'], 100, cvs.width/2, cvs.height*0.3, MENUFILL);
+    this.textCenter([selections[this.selected]],40, cvs.width/2,cvs.height*0.6+40*this.selected, MENUSELECTED);
     if (KEY.dn in input.keyEvent) {
 	delete input.keyEvent[KEY.dn];
 	this.selected = realMod(this.selected+1,3);
@@ -713,6 +718,56 @@ Game.prototype.mainmenu = function () {
 	delete input.keyEvent[KEY.up];
 	this.selected = realMod(this.selected-1,3);
     }
+    if (KEY.en in input.keyEvent) {
+	delete input.keyEvent[KEY.en];
+	if (this.selected == 0) { // new game
+	    this.skip_dialog = this.always_skip_dialog;
+	    this.gotolater(this.loading);
+	} else if (this.selected == 1) { // options
+	    this.selected = 0;
+	    this.calllater(this.options);
+	} else if (this.selected == 2) { // credits
+	    this.draw_credits();
+	    this.calllater(this.returntomenu);
+	}
+    }
+};
+Game.prototype.options = function () {
+    var booltotext = {true:'on',false:'off'};
+    var values = [booltotext[!this.always_skip_dialog],booltotext[this.sfx],booltotext[this.music]];
+    var highlightables = values.concat(['return']);
+    var locations = [[550,0],[550,30],[550,60],[400,200]], starty = 250;
+
+    ctx.fillStyle = MENUBG;
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+
+    this.textLeft(['story','sound effects','music'], 30, 200, starty, MENUFILL);
+    this.textCenter(values, 30, 550, starty, MENUFILL);
+    this.textCenter(['return'], 30, locations[3][0], locations[3][1]+starty, MENUFILL);
+    this.textCenter([highlightables[this.selected]],30,locations[this.selected][0],locations[this.selected][1] + starty, MENUSELECTED);
+    this.textCenter(['use up, down, and enter to change options'],30,400,100,MENUFILL);
+    if (KEY.dn in input.keyEvent) {
+	delete input.keyEvent[KEY.dn];
+	this.selected = realMod(this.selected+1,4);
+    }
+    if (KEY.up in input.keyEvent) {
+	delete input.keyEvent[KEY.up];
+	this.selected = realMod(this.selected-1,4);
+    }
+    if (KEY.en in input.keyEvent) {
+	delete input.keyEvent[KEY.en];
+	if (this.selected == 0) { // dialog
+	    this.always_skip_dialog = ! this.always_skip_dialog;
+	} else if (this.selected == 1) { // sfx
+	    this.sfx = ! this.sfx;
+	} else if (this.selected == 2) { // music
+	    this.music = ! this.music;
+	} else if (this.selected == 3) { // return
+	    this.selected = 0;
+	    this.returnlater();
+	}
+    }
+
 };
 Game.prototype.returntomenu = function () {
     if (KEY.en in input.keyEvent || this.skip_dialog) {
