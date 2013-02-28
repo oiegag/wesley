@@ -51,8 +51,7 @@ var addOne = function (array,what) {
 };
 
 var removeAll = function(array,ofwhat) {
-    array = array.filter(function (x) {return x != ofwhat;});
-    return array;
+    return array.filter(function (x) {return x != ofwhat;});
 };
 
 var gaussian = function () {
@@ -271,18 +270,28 @@ Board.prototype.load_initial = function (initialstate) {
 	}
     }
 };
-
-Board.prototype.show = function () {
-    for (var i = this.nrows-1 ; i >= 0 ; i--) {
+Board.prototype.tostring = function () {
+    lines = [];
+    for (var i = 0 ; i < board.nrows ; i++) {
 	line = '';
 	for (var j = 0 ; j < this.ncols ; j++) {
-	    if(this[i][j]) {
-		line = line + this[i][j];
+	    if(this[i][j] == COL_COR) {
+		line = line + 'c';
+	    } else if (this[i][j] == COL_NEG) {
+		line = line + 'n';
 	    } else {
 		line = line + '.';
 	    }
 	}
-	console.log(line);
+	lines.push(line);
+    }
+    return lines;
+}
+
+Board.prototype.show = function () {
+    var lines = this.tostring().reverse();
+    for (var i in lines) {
+	console.log(lines[i]);
     }
 };
 Board.prototype.place = function (piece) {
@@ -616,6 +625,7 @@ var Game = function () {
     this.always_skip_dialog = false; // set skip dialog back to this value on entering a level
     this.music = true;
     this.sfx = true;
+    this.invert = true;
 
     lvl = new this.lvls[this.lvl]();
     setTimeout(this.callback,FRIENDLY);
@@ -628,7 +638,7 @@ Game.prototype.nextlevel = function () {
 	this.began = Date.now();
 	return;
     }
-    lvl = new this.lvls[realMod(this.lvl,this.lvls.length)]();
+    lvl = new this.lvls[realMod(this.lvl,this.lvls.length)](board.tostring());
     input.reset();
     this.gotolater(this.loading);
 };
@@ -699,8 +709,9 @@ Game.prototype.textRight = function (strs,font,endx,starty,color) {
 Game.prototype.draw_credits = function () {
     ctx.fillStyle = MENUBG;
     ctx.fillRect(0,0,cvs.width,cvs.height);
-    this.textLeft(['mike mcfadden','kate mcfadden','mike and kate','','','','this work was made possible by:','inkscape, fontforge, chromium'], 40, 20, 100, MENUFILL);
-    this.textRight(['code,music','art','story,sound effects'], 40, cvs.width-20, 100, MENUFILL);
+    this.textLeft(['mike mcfadden','kate mcfadden','mike and kate','','','','this work was made possible by:','inkscape, fontforge, chromium'], 35, 20, 100, MENUFILL);
+    this.textRight(['code,music','art','story, sound effects'], 35, cvs.width-20, 100, MENUFILL);
+    this.textRight(['abcdefghijklmnopqrstuvwxyz',':!?,.()[]1234567890<>+=\''], 18, cvs.width-20, 500, MENUFILL);
 };
 Game.prototype.mainmenu = function () {
     var selections = ['new game','options','credits'];
@@ -708,7 +719,7 @@ Game.prototype.mainmenu = function () {
     ctx.fillStyle = MENUBG;
     ctx.fillRect(0,0,cvs.width,cvs.height);
     this.textCenter(selections, 40, cvs.width/2, cvs.height*0.6, MENUFILL);
-    this.textCenter(['raising wesley'], 100, cvs.width/2, cvs.height*0.3, MENUFILL);
+    this.textCenter(['raising wesley'], 80, cvs.width/2, cvs.height*0.3, MENUFILL);
     this.textCenter([selections[this.selected]],40, cvs.width/2,cvs.height*0.6+40*this.selected, MENUSELECTED);
     if (KEY.dn in input.keyEvent) {
 	delete input.keyEvent[KEY.dn];
@@ -721,7 +732,7 @@ Game.prototype.mainmenu = function () {
     if (KEY.en in input.keyEvent) {
 	delete input.keyEvent[KEY.en];
 	if (this.selected == 0) { // new game
-	    this.skip_dialog = this.always_skip_dialog;
+	    this.apply_options();
 	    this.gotolater(this.loading);
 	} else if (this.selected == 1) { // options
 	    this.selected = 0;
@@ -732,27 +743,37 @@ Game.prototype.mainmenu = function () {
 	}
     }
 };
+Game.prototype.apply_options = function () {
+    this.skip_dialog = this.always_skip_dialog;
+    if (this.invert) {
+	KEY.rt = 39;
+	KEY.lt = 37;
+    } else {
+	KEY.rt = 37;
+	KEY.lt = 39;
+    }
+};
 Game.prototype.options = function () {
     var booltotext = {true:'on',false:'off'};
-    var values = [booltotext[!this.always_skip_dialog],booltotext[this.sfx],booltotext[this.music]];
+    var values = [booltotext[!this.always_skip_dialog],booltotext[this.sfx],booltotext[this.music],booltotext[this.invert]];
     var highlightables = values.concat(['return']);
-    var locations = [[550,0],[550,30],[550,60],[400,200]], starty = 250;
+    var locations = [[550,0],[550,30],[550,60],[550,90],[400,200]], starty = 280;
 
     ctx.fillStyle = MENUBG;
     ctx.fillRect(0,0,cvs.width,cvs.height);
 
-    this.textLeft(['story','sound effects','music'], 30, 200, starty, MENUFILL);
+    this.textLeft(['story','sound effects','music','invert </>'], 30, 200, starty, MENUFILL);
     this.textCenter(values, 30, 550, starty, MENUFILL);
-    this.textCenter(['return'], 30, locations[3][0], locations[3][1]+starty, MENUFILL);
+    this.textCenter(['return'], 30, locations[values.length][0], locations[values.length][1]+starty, MENUFILL);
     this.textCenter([highlightables[this.selected]],30,locations[this.selected][0],locations[this.selected][1] + starty, MENUSELECTED);
     this.textCenter(['use up, down, and enter to change options'],30,400,100,MENUFILL);
     if (KEY.dn in input.keyEvent) {
 	delete input.keyEvent[KEY.dn];
-	this.selected = realMod(this.selected+1,4);
+	this.selected = realMod(this.selected+1,highlightables.length);
     }
     if (KEY.up in input.keyEvent) {
 	delete input.keyEvent[KEY.up];
-	this.selected = realMod(this.selected-1,4);
+	this.selected = realMod(this.selected-1,highlightables.length);
     }
     if (KEY.en in input.keyEvent) {
 	delete input.keyEvent[KEY.en];
@@ -762,7 +783,9 @@ Game.prototype.options = function () {
 	    this.sfx = ! this.sfx;
 	} else if (this.selected == 2) { // music
 	    this.music = ! this.music;
-	} else if (this.selected == 3) { // return
+	} else if (this.selected == 3) { // invert
+	    this.invert = ! this.invert;
+	} else if (this.selected == 4) { // return
 	    this.selected = 0;
 	    this.returnlater();
 	}
@@ -804,8 +827,9 @@ Game.prototype.censor = function () {
 };
 Game.prototype.dialog = function () {
     lvl.animate();
-    if (KEY.en in input.keyEvent || this.skip_dialog) {
+    if (KEY.en in input.keyEvent || KEY.sp in input.keyEvent || this.skip_dialog) {
 	delete input.keyEvent[KEY.en];
+	delete input.keyEvent[KEY.sp];
 	this.gotolater(this.dialog_animation);
 	lvl.last_update = Date.now();
 	lvl.began = lvl.last_update;
@@ -817,13 +841,16 @@ Game.prototype.dialog = function () {
 };
 Game.prototype.dialog_animation = function () {
     lvl.animate();
-    if (KEY.en in input.keyEvent || this.skip_dialog) {
+    if (KEY.en in input.keyEvent || KEY.sp in input.keyEvent || this.skip_dialog) {
 	delete input.keyEvent[KEY.en];
+	delete input.keyEvent[KEY.sp];
 	lvl.began -= 2000;
     }
     if (! lvl.dialog_animation()) {
 	if (! lvl.dialog(true)) {
 	    this.skip_dialog = this.always_skip_dialog;
+	    lvl.total_lines = lvl.lines;
+
 	    this.gotolater(this.waitcmd);
 	} else {
 	    this.gotolater(this.dialog);
@@ -892,9 +919,9 @@ Game.prototype.fall = function () {
 	lvl.lines -= lvl.feast();
 	piece = new ActivePiece(lvl.color,lvl.newpiece());
 	this.returnlater();
-	lvl.render_play(0,false);
+	lvl.render_play(false);
     } else {
-	lvl.render_play(0,false);
+	lvl.render_play(false);
 	piece.render(this.fallen);
     }
     lvl.interp_palette('dying',(lvl.timer-30)*1000);
@@ -929,7 +956,6 @@ Game.prototype.waitcmd = function () {
     }
 
     if (lvl.losecondition()) {
-	console.log('game over');
 	this.gotolater(this.gameover);
 	return;
     }
@@ -938,7 +964,6 @@ Game.prototype.waitcmd = function () {
 
     if (input.dirs.dn) {
 	if (! board.check(piece)) {
-	    console.log('game over');
 	    this.gotolater(this.gameover);
 	} else {
 	    this.startfall();
@@ -960,9 +985,7 @@ Game.prototype.tutorial1 = function () {
 
     if (input.dirs.dn) {
 	if (piece.fall_howfar() != 1) {
-	    imgs.moon.fillhook = function () {
-		lvl.moon_dialog("hold on. there is no time limit. you want to complete the innermost ring to feed him.");
-	    };
+	    lvl.tutorial_dialog = "hold on. there is no time limit. you want to complete the innermost ring to feed him.";
 	} else {
 	    this.startfall();
 	}
@@ -982,9 +1005,7 @@ Game.prototype.tutorial2 = function () {
 
     if (input.dirs.dn) {
 	if (piece.color != COL_NEG) {
-	    imgs.moon.fillhook = function () {
-		lvl.moon_dialog("you need to press enter or space to make your piece a clean-up piece.");
-	    };
+	    lvl.tutorial_dialog = "you need to press enter or space to make your piece a clean-up piece.";
 	} else {
 	    var offsets = piece.get_offsets(), shouldwork = false;
 	    for (var i in offsets) {
@@ -995,9 +1016,7 @@ Game.prototype.tutorial2 = function () {
 	    if (shouldwork) {
 		this.startfall();
 	    } else {
-		imgs.moon.fillhook = function () {
-		    lvl.moon_dialog("clean-up pieces land on holes but pass through normal star food. place the piece above the hole to clear your way.");
-		};
+		lvl.tutorial_dialog = "clean-up pieces land on holes but pass through normal star food. place the piece above the hole to clear your way.";
 	    }
 	}
     }
