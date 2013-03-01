@@ -43,6 +43,13 @@ cvs.oy = cvs.height*.9;
 
 
 // utilities
+var setCookie = function (name, value, days) {
+    var date = new Date();
+    date.setDate(date.getDate() + days);
+/*    var cookie = escape(value) + '*/
+};
+
+
 var addOne = function (array,what) {
     var where = array.lastIndexOf(what);
     if (where == -1) {
@@ -130,6 +137,8 @@ var Sprite = function(src,origin,sheet) {
     this.spos = [0,0];
     this.ox = origin[0];
     this.oy = origin[1];
+    this.vx = 0;
+    this.vy = 0;
     this.alpha = 1;
     this.rot = 0;
     this.tilt = 0; // a temporary rotation variable
@@ -630,6 +639,32 @@ var Game = function () {
     lvl = new this.lvls[this.lvl]();
     setTimeout(this.callback,FRIENDLY);
 };
+Game.prototype.do_clouds = function () {
+    // store here so we don't randomly regenerate positions each level
+    var now = Date.now();
+
+    if (this.cloud == undefined) {
+	this.cloud = {};
+	this.cloud.locations = [];
+	this.cloud.velocities = [];
+	this.cloud.update = Date.now();
+	for (var i = 0 ; i < 3 ; i++) {
+	    var vel = 
+	    this.cloud.locations.push([Math.round(-cvs.width/2 + Math.random()*cvs.width*2), Math.round(cvs.height*Math.pow(Math.random(),3))]);
+	    this.cloud.velocities.push(10*(1 + (Math.random() - .25))/1000);
+	}
+    }
+    for (var i in this.cloud.locations) {
+	ctx.drawImage(imgs.cloud.image,this.cloud.locations[i][0], this.cloud.locations[i][1]);
+	this.cloud.locations[i][0] = this.cloud.locations[i][0] - (now - this.cloud.update)*this.cloud.velocities[i];
+	if (this.cloud.locations[i][0] < -cvs.width/2) {
+	    this.cloud.locations[i][0] = cvs.width*1.5;
+	    this.cloud.locations[i][1] = Math.round(cvs.height*Math.pow(Math.random(),3));
+	    this.cloud.velocities[i] = 10*(1 + (Math.random() - .25))/1000;
+	}
+    }
+    this.cloud.update = Date.now();
+};
 Game.prototype.nextlevel = function () {
     this.lvl++;
     if (this.lvl == this.lvls.length) {
@@ -637,10 +672,33 @@ Game.prototype.nextlevel = function () {
 	input.reset();
 	this.began = Date.now();
 	return;
+    } else {
+	lvl.began = Date.now();
+	lvl.orig_style = lvl.styletype;
+	lvl.styletype = 'intermediate';
+	for (var i in STYLES.intermediate) {
+	    STYLES.intermediate[i] = lvl[i];
+	}
+	this.gotolater(this.transition_palette);
     }
-    lvl = new this.lvls[realMod(this.lvl,this.lvls.length)](board.tostring());
-    input.reset();
-    this.gotolater(this.loading);
+};
+Game.prototype.transition_palette = function () {
+    if (! lvl.interp_palette(lvl.orig_style,300)) {
+	lvl.animate();
+	lvl.render_play(false);
+	lvl = this.newlevel;
+	delete this.newlevel;
+	input.reset();
+	this.gotolater(this.loading);
+    } else {
+	lvl.animate();
+	lvl.render_play(false);
+	if (this.newlevel == undefined) {
+	    this.newlevel = new this.lvls[realMod(this.lvl,this.lvls.length)](board.tostring());
+	} else {
+	    console.log(this.newlevel.load());
+	}
+    }
 };
 Game.prototype.transition_to_credits = function () {
     var now = Date.now(), tfrac = (now - this.began)/1000;
@@ -711,7 +769,7 @@ Game.prototype.draw_credits = function () {
     ctx.fillRect(0,0,cvs.width,cvs.height);
     this.textLeft(['mike mcfadden','kate mcfadden','mike and kate','','','','this work was made possible by:','inkscape, fontforge, chromium'], 35, 20, 100, MENUFILL);
     this.textRight(['code,music','art','story, sound effects'], 35, cvs.width-20, 100, MENUFILL);
-    this.textRight(['abcdefghijklmnopqrstuvwxyz',':!?,.()[]1234567890<>+=\''], 18, cvs.width-20, 500, MENUFILL);
+    this.textRight(['abcdefghijklmnopqrstuvwxyz',':!?,.()[]1234567890<>+=\''], 19, cvs.width-20, 500, MENUFILL);
 };
 Game.prototype.mainmenu = function () {
     var selections = ['new game','options','credits'];
@@ -891,6 +949,7 @@ Game.prototype.rotate = function () {
 	lvl.render_play();
 	piece.render();
     }
+    lvl.animate();
     lvl.interp_palette('dying',(lvl.timer-30)*1000);
 };
 Game.prototype.startrotate = function (val) {
@@ -924,6 +983,7 @@ Game.prototype.fall = function () {
 	lvl.render_play(false);
 	piece.render(this.fallen);
     }
+    lvl.animate();
     lvl.interp_palette('dying',(lvl.timer-30)*1000);
 };
 Game.prototype.gameover = function () {
@@ -993,7 +1053,6 @@ Game.prototype.tutorial1 = function () {
 
     if (lvl.wincondition()) {
 	this.nextlevel();
-	delete imgs.moon.fillhook;
 	return;
     }
     lvl.animate();
@@ -1029,7 +1088,6 @@ Game.prototype.tutorial2 = function () {
 
     if (lvl.wincondition()) {
 	this.nextlevel();
-	delete imgs.moon.fillhook;
 	return;
     }
     lvl.animate();

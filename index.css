@@ -5,11 +5,10 @@
 
 @font-face {
     font-family: 'mine';
-    src: url('fonts/tarot-webfont.eot');
-    src: url('fonts/tarot-webfont.eot?#iefix') format('embedded-opentype'),
-         url('fonts/tarot-webfont.svg#mine') format('svg'),
+    src: url('fonts/tarot-webfont.ttf') format('truetype'),
+	 url('fonts/tarot-webfont.eot?#iefix') format('embedded-opentype'),
          url('fonts/tarot-webfont.woff') format('woff'),
-         url('fonts/tarot-webfont.ttf') format('truetype');
+         url('fonts/tarot-webfont.svg#mine') format('svg');
 
     font-weight: normal;
     font-style: normal;
