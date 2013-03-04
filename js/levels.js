@@ -213,9 +213,15 @@ Level.prototype.feast = function (feastwhat) {
 	    break;
 	}
     }
+    // now delete the bottom rows and clear the top ones
     for (var i = 0 ; i < board.nrows-delrows ; i++) {
 	for (var j = 0 ; j < board.ncols ; j++) {
 	    board[i][j] = board[i+delrows][j];
+	}
+    }
+    for (var i = board.nrows-delrows ; i < board.nrows ; i++) {
+	for (var j = 0 ; j < board.ncols ; j++) {
+	    board[i][j] = COL_NON;
 	}
     }
     return delrows;
@@ -339,6 +345,13 @@ Level.prototype.background = function (grid) {
 
     this.bg.render();
     game.do_clouds();
+};
+Level.prototype.pdict = {
+    l:0,
+    t:1,
+    cup:2,
+    straight:3,
+    u:4
 };
 Level.prototype.newpiece = function () {
     if (this.pieces == undefined) {
@@ -878,7 +891,7 @@ var WakingBaby = function () {
 };
 WakingBaby.prototype = new Level();
 WakingBaby.prototype.postload = function () {
-    if (board != undefined) {
+    if (typeof(board) != "undefined") {
 	var saveboard = board;
 	Level.prototype.postload.call(this);
 	board = saveboard;
@@ -918,7 +931,7 @@ var WokenBaby = function (initialstate) {
 };
 WokenBaby.prototype = new Level();
 WokenBaby.prototype.nextpiece = function () {
-    var pieces = [3,3,3];
+    var pieces = [this.pdict.straight,this.pdict.t,this.pdict.t];
     return pieces[this.piececount++]; // cup piece
 };
 WokenBaby.prototype.gameovertext = "when you look around, moon is nowhere to be found. you spend eternity floating around a dead baby star, cold, and filled with remorse. try again.";
@@ -956,14 +969,15 @@ makeScene(WokenBaby.prototype.dialogs,
 		      this.inscene.push(imgs.moon);
 		      imgs.moon.oy = 0.9*cvs.height;
 		      board.load_initial([
-			  "ccccccccccccccccccc...",
-			  "ccccccccccccccccccc...",
-			  "ccccccccccccccccccc...",
+			  "ccc....ccccccccccccccc",
+			  "ccc....ccccccccccccccc",
+			  "ccc....ccccccccccccccc",
+			  ".......c.............."
 		      ]);
 		  }
 	      },
 	      {
-		  moon: "you! you! wake up! i forgot to mention, you must keep feeding these things or they will die. it has picked up some food floating in space, but you need to use your last three pieces to complete the rings. \n i hope you figure it out, i do not want to be caught with another dead baby.",
+		  moon: "you! you! wake up! i forgot you must keep feeding these things or they die. it has picked up some food floating in space, but you need to use your last three pieces to complete the rings. \n i hope you figure it out, i do not want to be caught with another dead baby.",
 		  action: 'moon_set'
 	      }
 	  ],false);
@@ -1063,11 +1077,12 @@ var MoonSucks = function (initialstate) {
     this.preload();
     this.dialog = this.dialogs[0];
     this.lines = 3;
+    this.timer = 1/0;
     this.piececount = 0;
 }
 MoonSucks.prototype = new Level();
 MoonSucks.prototype.nextpiece = function () {
-    var pieces = [3,3,3];
+    var pieces = [this.pdict.cup,this.pdict.t,this.pdict.t,this.pdict.u,this.pdict.l,this.pdict.t];
     return pieces[this.piececount++]; // cup piece
 };
 MoonSucks.prototype.postload = function () {
@@ -1102,9 +1117,10 @@ makeScene(MoonSucks.prototype.dialogs,
 		  action: 'moon_rise',
 		  hook: function () {
 		      board.load_initial([
-			  "ccccccccccccccccccc...",
-			  "ccccccccccccccccccc...",
-			  "ccccccccccccccccccc...",
+			  "ccc.c.ccccccccc.ccc...",
+			  "ccc.c.ccccccccc.ccc...",
+			  "ccc...cc..cccc...cc...",
+			  ".......c.............."
 		      ]);
 		  }
 	      },
@@ -1141,14 +1157,14 @@ AnotherDay.prototype.dialogs = [];
 makeScene(AnotherDay.prototype.dialogs,
 	  [
 	      {
-		  narrate: "a job well done.",
+		  narrate: "a job well done.\n \n a sentence with no predicate.",
 		  action: 'moon_rise'
 	      },
 	      {
 		  moon: "that was close. i don't think i could handle hearing another crying baby. the sound makes me want to throw up."
 	      },
 	      {
-		  narrate: "annoyed by moon's incompetence, you leave to collect more puzzle pieces for tomorrow. when night comes, you are tired, so you sleep.",
+		  narrate: "annoyed by moon's incompetent feeding, you leave to collect more puzzle pieces for tomorrow.\n \n when night comes, you are tired, so you sleep.",
 		  action: 'fade_out',
 		  args: function () {
 		      this.inscene = removeAll(this.inscene, imgs.moon);
@@ -1172,10 +1188,11 @@ var AnotherPuzzle = function (initialstate) {
     this.dialog = this.dialogs[0];
     this.lines = 3;
     this.piececount = 0;
+    this.timer = 1/0;
 }
 AnotherPuzzle.prototype = new Level();
 AnotherPuzzle.prototype.nextpiece = function () {
-    var pieces = [3,3,3];
+    var pieces = [this.pdict.cup,this.pdict.l,this.pdict.t, this.pdict.l, this.pdict.t, this.pdict.l];
     return pieces[this.piececount++]; // cup piece
 };
 AnotherPuzzle.prototype.postload = function () {
@@ -1193,19 +1210,18 @@ makeScene(AnotherPuzzle.prototype.dialogs,
 		  action: 'sun_set',
 		  hook: function () {
 		      board.load_initial([
-			  "ccccccccccccccccccc...",
-			  "ccccccccccccccccccc...",
-			  "ccccccccccccccccccc...",
-			  "cc...................."
+			  "cccncccccccccccccc..cc",
+			  "cccccccccc.ccccccc...c",
+			  "cc.cccccc..ccccccc...c"
 		      ]);
 		  }
 	      },
 	      {
-		  narrate: '...but detecting a pattern, you turn back early to see if there is some sort of puzzle to play.',
+		  narrate: '...but detecting a pattern to your life, you turn back early to see if there is some sort of puzzle to complete.',
 		  action: 'sun_rise',
 	      },
 	      {
-		  narrate: "when you return, the star baby has collected some debris. you must untangle that baby using only a couple of pieces and your prowess."
+		  narrate: "when you return, the star baby has collected some debris. you must untangle that baby using only a few pieces and your prowess."
 	      }
 	  ], false);
 
@@ -1293,10 +1309,11 @@ var WesleyPuzzle = function (initialstate) {
     this.dialog = this.dialogs[0];
     this.lines = 3;
     this.piececount = 0;
+    this.timer = 1/0;
 }
 WesleyPuzzle.prototype = new Level();
 WesleyPuzzle.prototype.nextpiece = function () {
-    var pieces = [3,3,3];
+    var pieces = [this.pdict.t,this.pdict.u,this.pdict.l,this.pdict.t,this.pdict.t];
     return pieces[this.piececount++]; // cup piece
 };
 WesleyPuzzle.prototype.postload = function () {
@@ -1312,9 +1329,10 @@ makeScene(WesleyPuzzle.prototype.dialogs,
 		  action: 'sun_set',
 		  hook: function () {
 		      board.load_initial([
-			  "ccccccccccccccccccc...",
-			  "ccccccccccccccccccc...",
-			  "ccccccccccccccccccc...",
+			  "cc...cccccccccccccc.c.",
+			  "cc...cccccccccccccc...",
+			  "cc...cccccccccccccc...",
+			  "cc.....cc....c........"
 		      ]);
 		  }
 	      },

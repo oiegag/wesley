@@ -46,9 +46,21 @@ cvs.oy = cvs.height*.9;
 var setCookie = function (name, value, days) {
     var date = new Date();
     date.setDate(date.getDate() + days);
-/*    var cookie = escape(value) + '*/
+    var cookie = escape(value) + '; expires=' + date.toUTCString();
+    document.cookie = name + '=' + cookie;
 };
 
+var getCookie = function (sought) {
+    var cookies = document.cookie.split(';');
+    for (var i = 0 ; i < cookies.length ; i++) {
+	var name = cookies[i].substr(0,cookies[i].indexOf('='));
+	var value = cookies[i].substr(cookies[i].indexOf('=')+1);
+	if (name == sought) {
+	    return value;
+	}
+    }
+    return undefined;
+};
 
 var addOne = function (array,what) {
     var where = array.lastIndexOf(what);
@@ -621,6 +633,12 @@ Input.prototype.parsedirs = function () {
 };
 Input.prototype.reset = function () {
     this.keyEvent = {};
+    this.dirs = {
+	up:false,
+	dn:false,
+	rt:false,
+	lt:false
+    };
 };
 
 var Game = function () {
@@ -629,7 +647,7 @@ var Game = function () {
     this.lvls = [SleepingBaby,SleepingBabyNeg,WakingBaby,WokenBaby,BigBaby,MoonSucks,AnotherDay,AnotherPuzzle,
 		 StarMan,WesleyPuzzle,BigMan,BigManPuzzle,
 		 Giant,DoublePuzzle,TriplePuzzle,CleanupPuzzle,Waiting];
-    this.lvl = 0;
+    this.load_level();
     this.skip_dialog = false;
     this.always_skip_dialog = false; // set skip dialog back to this value on entering a level
     this.music = true;
@@ -638,6 +656,18 @@ var Game = function () {
 
     lvl = new this.lvls[this.lvl]();
     setTimeout(this.callback,FRIENDLY);
+};
+Game.prototype.save_level = function () {
+    // wrapper for either set cookie or a kongregate api later on
+    setCookie('level',this.lvl.toString(),30);
+};
+Game.prototype.load_level = function () {
+    var lvl = getCookie('level');
+    if (lvl && parseInt(lvl)) {
+	this.lvl = lvl;
+    } else {
+	this.lvl = 0;
+    }
 };
 Game.prototype.do_clouds = function () {
     // store here so we don't randomly regenerate positions each level
@@ -655,7 +685,7 @@ Game.prototype.do_clouds = function () {
 	}
     }
     for (var i in this.cloud.locations) {
-	ctx.drawImage(imgs.cloud.image,this.cloud.locations[i][0], this.cloud.locations[i][1]);
+	ctx.drawImage(imgs.cloud.image,Math.round(this.cloud.locations[i][0]), Math.round(this.cloud.locations[i][1]));
 	this.cloud.locations[i][0] = this.cloud.locations[i][0] - (now - this.cloud.update)*this.cloud.velocities[i];
 	if (this.cloud.locations[i][0] < -cvs.width/2) {
 	    this.cloud.locations[i][0] = cvs.width*1.5;
@@ -673,6 +703,7 @@ Game.prototype.nextlevel = function () {
 	this.began = Date.now();
 	return;
     } else {
+	this.save_level();
 	lvl.began = Date.now();
 	lvl.orig_style = lvl.styletype;
 	lvl.styletype = 'intermediate';
@@ -695,8 +726,6 @@ Game.prototype.transition_palette = function () {
 	lvl.render_play(false);
 	if (this.newlevel == undefined) {
 	    this.newlevel = new this.lvls[realMod(this.lvl,this.lvls.length)](board.tostring());
-	} else {
-	    console.log(this.newlevel.load());
 	}
     }
 };
@@ -772,30 +801,41 @@ Game.prototype.draw_credits = function () {
     this.textRight(['abcdefghijklmnopqrstuvwxyz',':!?,.()[]1234567890<>+=\''], 19, cvs.width-20, 500, MENUFILL);
 };
 Game.prototype.mainmenu = function () {
-    var selections = ['new game','options','credits'];
+    var selections = ['continue','new game','options','credits'];
 
     ctx.fillStyle = MENUBG;
     ctx.fillRect(0,0,cvs.width,cvs.height);
     this.textCenter(selections, 40, cvs.width/2, cvs.height*0.6, MENUFILL);
     this.textCenter(['raising wesley'], 80, cvs.width/2, cvs.height*0.3, MENUFILL);
+    if (this.lvl == 0) {
+	this.textCenter(['continue'], 40, cvs.width/2,cvs.height*0.6, '#a86');
+	if (this.selected == 0) {
+	    this.selected = 1;
+	}
+    }
     this.textCenter([selections[this.selected]],40, cvs.width/2,cvs.height*0.6+40*this.selected, MENUSELECTED);
     if (KEY.dn in input.keyEvent) {
 	delete input.keyEvent[KEY.dn];
-	this.selected = realMod(this.selected+1,3);
+	this.selected = realMod(this.selected+1,4);
     }
     if (KEY.up in input.keyEvent) {
 	delete input.keyEvent[KEY.up];
-	this.selected = realMod(this.selected-1,3);
+	this.selected = realMod(this.selected-1,4);
     }
     if (KEY.en in input.keyEvent) {
 	delete input.keyEvent[KEY.en];
-	if (this.selected == 0) { // new game
+	if (this.selected == 0) { // continue
 	    this.apply_options();
 	    this.gotolater(this.loading);
-	} else if (this.selected == 1) { // options
+	} else if (this.selected == 1) { // new game
+	    this.lvl = 0;
+	    lvl = new this.lvls[this.lvl]();
+	    this.apply_options();
+	    this.gotolater(this.loading);
+	} else if (this.selected == 2) { // options
 	    this.selected = 0;
 	    this.calllater(this.options);
-	} else if (this.selected == 2) { // credits
+	} else if (this.selected == 3) { // credits
 	    this.draw_credits();
 	    this.calllater(this.returntomenu);
 	}
@@ -872,6 +912,7 @@ Game.prototype.callback = function () {
 Game.prototype.loading = function () {
     if(lvl.load()) {
 	lvl.postload();
+	input.reset();
 	lvl.dialog(false);
 	this.gotolater(this.dialog);
     }
@@ -908,7 +949,7 @@ Game.prototype.dialog_animation = function () {
 	if (! lvl.dialog(true)) {
 	    this.skip_dialog = this.always_skip_dialog;
 	    lvl.total_lines = lvl.lines;
-
+	    input.reset();
 	    this.gotolater(this.waitcmd);
 	} else {
 	    this.gotolater(this.dialog);
