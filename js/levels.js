@@ -187,6 +187,10 @@ Level.prototype.preload = function () {
 					['sun_head'],['sun_mid'],['sun_foot'],['moon',[0.08*cvs.width,0.9*cvs.height]],
 				        ['lefty'],['righty'],['piece_t'],['piece_straight'],['piece_l'],['piece_cup'],
 				        ['piece_u'],['objectives',[0,0],[17,1]],['cloud']]);
+    if (this.newsnds == undefined) {
+	this.newsnds = [];
+    }
+    this.newsnds = this.newsnds.concat([['rotate'],['fallen'],['feast'],['wheelie'],['moondeath'],['shakeout']]);
 
     this.reset_style();
     this.reset_settings();
@@ -242,7 +246,7 @@ Level.prototype.startloading = function (these,constructor,where) {
     var loaded = 0;
     for (var i in these) {
 	if (! (these[i][0] in where)) {
-	    where[these[i][0]] = new constructor('images/'+these[i][0]+'.png',these[i][1],these[i][2]);
+	    where[these[i][0]] = new constructor(these[i][0],these[i][1],these[i][2]);
 	} else if (where[these[i][0]].ready) {
 	    loaded++;
 	}
@@ -301,6 +305,7 @@ Level.prototype.load = function() {
     // generic load of the newimgs/newpats things
     var iloaded = this.startloading(this.newimgs,Sprite,imgs);
     var ploaded = this.startloading(this.newpats,Pattern,pats);
+    var sloaded = this.startloading(this.newsnds,Sound,snds);
     if ((iloaded == this.newimgs.length) && (ploaded == this.newpats.length)) {
 	return true;
     } else {
@@ -526,10 +531,19 @@ Level.prototype.animate_rise = function (risewhat,from,to,inthesems) {
 
     var now = Date.now(), tfrac = (now - this.began)/inthesems;
 
+    if (! game.skip_dialog && this.played_wheelie == undefined) {
+	this.played_wheelie = true;
+	snds.wheelie.play();
+    }
+
     sfrac = 1 - Math.exp(-(tfrac*5))*Math.cos(10*tfrac);
     risewhat.ox = Math.round((1-sfrac)*from[0] + sfrac*to[0]);
     risewhat.oy = Math.round((1-sfrac)*from[1] + sfrac*to[1]);
     this.draw_scene();
+
+    if (tfrac >= 1) {
+	delete this.played_wheelie;
+    }
 
     return (tfrac < 1);
 };
@@ -537,6 +551,11 @@ Level.prototype.animate_set = function (setwhat,from,to,inthesems) {
     this.background(false);
 
     var now = Date.now(), tfrac = (now - this.began)/inthesems;
+
+    if (! game.skip_dialog && this.played_wheelie == undefined) {
+	this.played_wheelie = true;
+	snds.wheelie.play();
+    }
 
     sfrac = tfrac*tfrac;
 
@@ -547,6 +566,10 @@ Level.prototype.animate_set = function (setwhat,from,to,inthesems) {
     setwhat.ox = Math.round((1-sfrac)*from[0] + sfrac*to[0]);
     setwhat.oy = Math.round((1-sfrac)*from[1] + sfrac*to[1]);
     this.draw_scene();
+
+    if (tfrac >= 1) {
+	delete this.played_wheelie;
+    }
 
     return (tfrac < 1);
 };
@@ -570,6 +593,11 @@ Level.prototype.shakenbake = function (changescene) {
     var now = Date.now(), tfrac = (now - this.began)/2500;
     var sfrac = tfrac*tfrac;
 
+    if (this.shakeout_sound == undefined) {
+	this.shakeout_sound = true;
+	snds.shakeout.play();
+    }
+
     ctx.fillStyle = '#fff'
     ctx.globalAlpha = sfrac;
     ctx.fillRect(0,0,cvs.width,cvs.height);
@@ -585,6 +613,7 @@ Level.prototype.shakenbake = function (changescene) {
 
     if (tfrac > 1) {
 	changescene.call(this);
+	delete this.shakeout_sound;
     }
     return (tfrac < 1);
 };
@@ -626,7 +655,15 @@ Level.prototype.moon_burn = function () {
     return this.animate_set(imgs[this.sun], [cvs.ox, cvs.oy], [0.35*cvs.width,cvs.oy],1200);
 };
 Level.prototype.moon_burn2 = function () {
-    return this.dialog_palette_change('deadmoon');
+    if (this.moon_death == undefined) {
+	this.moon_death = true;
+	snds.moondeath.play();
+    }
+    var ret = this.dialog_palette_change('deadmoon');
+    if (!ret) {
+	delete this.moon_death;
+    }
+    return ret;
 };
 Level.prototype.moon_burn3 = function () {
     return this.animate_set(imgs[this.sun],  [0.35*cvs.width,cvs.oy], [cvs.ox, cvs.oy],1200);
@@ -786,7 +823,7 @@ makeScene(SleepingBaby.prototype.dialogs,
 		  action: 'sun_rise'
 	      },
 	      {
-		  narrate:"you consider the star baby a while, then you consider playing a different game with fewer words in it but finally you decide against it. [alright moon. how do i wake a star baby?]",
+		  narrate:"you consider the star baby a while, then you consider playing a different game with fewer words in it but finally you decide against it. [all right moon. how do i wake a star baby?]",
 	      },
 	      {
 		  moon:"stars need food to live. surround a star by a ring of food, and it will burn. feed it enough, and it will shine.",
@@ -950,7 +987,7 @@ WokenBaby.prototype.dialogs = [];
 makeScene(WokenBaby.prototype.dialogs,
 	  [
 	      {
-		  narrate: "as the third ring is absorbed into the babyhead, you are flushed with anticipation. what palette changes await you?",
+		  narrate: "as the third ring is absorbed into the baby head, you are flushed with anticipation. what palette changes await you?",
 		  action: 'dialog_palette_change',
 		  args: 'babyface',
 		  hook: function () {
@@ -1285,12 +1322,12 @@ makeScene(StarMan.prototype.dialogs,
 		  narrate: "[yeah, i guess that would be fair...]"
 	      },
 	      {
-		  sun: "alright, so how about this: each day, you will feed me, and in return, i will shine on you.\n \n that sounds reasonable. does it not?",
+		  sun: "all right, so how about this: each day, you will feed me, and in return, i will shine on you.\n \n that sounds reasonable. does it not?",
 		  narrate: "at least for the purpose of moving the story along, you agree that it seems reasonable. after all, wesley seems to be very well informed about these things.\n",
 		  action: 'moon_set'
 	      },
 	      {
-		  narrate: "you hate wesley.\n \n you begin feeding him the food you collected yesterday. feeding a star baby seemed almost natural. there's something perverse about feeding this star man."
+		  narrate: "you hate wesley.\n \n you begin feeding him the food you collected yesterday. feeding a star baby seemed almost natural, but there's something perverse about feeding this star man."
 	      }
 	  ],false);
 
@@ -1374,7 +1411,7 @@ BigMan.prototype.dialogs = [];
 makeScene(BigMan.prototype.dialogs,
 	  [
 	      {
-		  narrate: "when wesley is untangled, he doesn't say thank you but just keeps giving you that irritating smile.\n \n feeling uncomfortable, you go away to fetch the rest of your puzzle pieces. when night comes, you are tired, so you sleep.",
+		  narrate: "when wesley is untangled, he doesn't say thank you but just keeps giving you that irritating smile.\n \n feeling uncomfortable, you go away to fetch the rest of your puzzle pieces.\n \n when night comes, you are tired, so you sleep.",
 		  action: 'fade_out',
 		  args: function () {
 		      this.settingtype = 'bigman';
@@ -1514,7 +1551,7 @@ makeScene(Giant.prototype.dialogs,
 	      },
 	      {
 		  moon: "wha?",
-		  sun: "where are the pieces you fetched yesterday? it is wetsley's snacktime."
+		  sun: "where are the pieces you fetched yesterday? it is wetsley's snack time."
 	      },
 	      {
 		  moon: "oh, sorry. i am afraid i am not the food-fetch i once was. i have only found one type of piece.",
@@ -1726,7 +1763,7 @@ makeScene(CleanupPuzzle.prototype.dialogs,
 		  }
 	      },
 	      {
-		  narrate: "when your vision returns, you see that wetsley has burst into a disgusting green smoke surrounding the tiny skull of the star baby that you had ignored for millenia.\n \n before you can begin to feel relief, you realize the smoke is toxic. use clean-up pieces to remove it quickly. you have too much to live for!"
+		  narrate: "when your vision returns, you see that wetsley has burst into a disgusting green smoke surrounding the tiny skull of the star baby that you had ignored for millennia.\n \n before you can begin to feel relief, you realize the smoke is toxic. use clean-up pieces to remove it quickly. you have too much to live for!"
 	      }
 	  ], false);
 

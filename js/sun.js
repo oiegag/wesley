@@ -159,7 +159,7 @@ var Sprite = function(src,origin,sheet) {
 	this.parent.sw = this.width/this.parent.sheet[0];
 	this.parent.sh = this.height/this.parent.sheet[1];
     };
-    this.image.src = src;
+    this.image.src = 'images/' + src + '.png';
 };
 Sprite.prototype.render = function () {
     if (this.fillhook != undefined) {
@@ -208,7 +208,7 @@ var Pattern = function(src,sheet,seq) {
 	this.parent.sh = this.height/this.parent.sheet[1];
     };
     this.pats = [];
-    this.image.src = src;
+    this.image.src = 'images/' + src + '.png';
 };
 Pattern.prototype.animate = function () {
     var now = Date.now();
@@ -998,6 +998,7 @@ Game.prototype.startrotate = function (val) {
     this.speed = 1/100;
     this.val = val;
     this.last_update = Date.now();
+    snds.rotate.play();
 };
 Game.prototype.startfall = function () {
     this.calllater(this.fall);
@@ -1016,9 +1017,14 @@ Game.prototype.fall = function () {
 	piece.i = this.fallto;
 	board.setto(piece,piece.color);
 	board.jettison();
-	lvl.lines -= lvl.feast();
+	var reduced = lvl.feast();
+	if (reduced > 0) {
+	    lvl.lines -= reduced;
+	    snds.feast.play();
+	}
 	piece = new ActivePiece(lvl.color,lvl.newpiece());
 	this.returnlater();
+	snds.fallen.play();
 	lvl.render_play(false);
     } else {
 	lvl.render_play(false);
@@ -1034,6 +1040,7 @@ Game.prototype.gameover = function () {
 	this.skip_dialog = true;
 	imgs = {};
 	pats = {};
+	snds = {};
 	input.reset();
 	this.gotolater(this.loading);
     }
@@ -1140,6 +1147,7 @@ Game.prototype.tutorial2 = function () {
 
 imgs = {};
 pats = {};
+snds = {};
 input = new Input();
 lvl = {};
 
