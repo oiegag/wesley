@@ -1,10 +1,9 @@
 // a single file object with player
 
-var SoundFile = function (filenm,parent,loop) {
+var SoundFile = function (filenm,parent) {
     this.playing = false;
     this.loaded = false;
     this.error = false;
-    this.loop = loop;
     this.parent = parent;
     this.filenm = filenm;
     this.load();
@@ -17,16 +16,9 @@ SoundFile.prototype.load = function () {
 	    this.parent.loaded = true;
 	    this.parent.parent.register(this.parent,true);
 	    this.removeEventListener('canplaythrough', arguments.callee, false);
-	    if (this.parent.loop) {
-		this.addEventListener('ended',function () {
-		    this.parent.playing = false;
-		    this.parent.play();
-		}, false);
-	    } else {
-		this.addEventListener('ended',function () {
-		    this.parent.playing = false;
-		}, false);
-	    }
+	    this.addEventListener('ended',function () {
+		this.parent.playing = false;
+	    }, false);
 	}, false);
 	this.file.addEventListener('error',function () {
 	    this.parent.error = true;
@@ -35,6 +27,13 @@ SoundFile.prototype.load = function () {
 	    this.removeEventListener('error', arguments.callee, false);
 	}, false);
     }
+};
+SoundFile.prototype.loop = function () {
+    this.file.removeEventListener('ended', arguments.callee, false);
+    this.file.addEventListener('ended',function () {
+	this.parent.playing = false;
+	this.parent.play();
+    }, false);
 };
 SoundFile.prototype.end = function () {
     if (! this.playing || this.error) {
@@ -63,16 +62,13 @@ SoundFile.prototype.play = function () {
 };
 
 // a wrapper to try different formats on failure
-var Sound = function (trythis,playhook,loop) {
+var Sound = function (trythis,playhook) {
     this.playonload = false;
     this.trying = 0;
     this.trylist = ['snd/'+trythis+'.ogg','snd/'+trythis+'.mp3'];
     this.loaded = false;
     this.error = false;
-    if (loop == undefined) {
-	loop = false;
-    }
-    this.loop = loop;
+
     if (playhook == undefined) {
 	playhook = "sfx";
     }
@@ -86,7 +82,7 @@ var Sound = function (trythis,playhook,loop) {
 	this.loaded = true;
 	this.error = true;
     } else {
-	this.kid = new SoundFile(this.trylist[this.trying],this,this.loop);
+	this.kid = new SoundFile(this.trylist[this.trying],this);
     }
 };
 Sound.prototype.register = function(which,working) {
@@ -103,7 +99,7 @@ Sound.prototype.register = function(which,working) {
 	    this.loaded = true;
 	    this.error = true;
 	} else {
-	    this.kid = new SoundFile(this.trylist[this.trying],this,this.loop);
+	    this.kid = new SoundFile(this.trylist[this.trying],this);
 	    this.kid.load();
 	}
     }
@@ -111,7 +107,7 @@ Sound.prototype.register = function(which,working) {
 Sound.prototype.play = function () {
     if (this.loaded && ! this.error && this.playhook()) {
 	this.mine.play();
-    } else {
+    } else if (this.playhook()) {
 	this.playonload = true;
     }
 };

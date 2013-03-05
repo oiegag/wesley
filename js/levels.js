@@ -190,7 +190,7 @@ Level.prototype.preload = function () {
     if (this.newsnds == undefined) {
 	this.newsnds = [];
     }
-    this.newsnds = this.newsnds.concat([['rotate'],['fallen'],['feast'],['wheelie'],['moondeath'],['shakeout']]);
+    this.newsnds = this.newsnds.concat([['fallen'],['cfallen'],['feast'],['wheelin'],['moondeath'],['shakeout']]);
 
     this.reset_style();
     this.reset_settings();
@@ -531,9 +531,9 @@ Level.prototype.animate_rise = function (risewhat,from,to,inthesems) {
 
     var now = Date.now(), tfrac = (now - this.began)/inthesems;
 
-    if (! game.skip_dialog && this.played_wheelie == undefined) {
+    if (this.played_wheelie == undefined) {
 	this.played_wheelie = true;
-	snds.wheelie.play();
+	snds.wheelin.play();
     }
 
     sfrac = 1 - Math.exp(-(tfrac*5))*Math.cos(10*tfrac);
@@ -551,11 +551,6 @@ Level.prototype.animate_set = function (setwhat,from,to,inthesems) {
     this.background(false);
 
     var now = Date.now(), tfrac = (now - this.began)/inthesems;
-
-    if (! game.skip_dialog && this.played_wheelie == undefined) {
-	this.played_wheelie = true;
-	snds.wheelie.play();
-    }
 
     sfrac = tfrac*tfrac;
 
@@ -1327,7 +1322,7 @@ makeScene(StarMan.prototype.dialogs,
 		  action: 'moon_set'
 	      },
 	      {
-		  narrate: "you hate wesley.\n \n you begin feeding him the food you collected yesterday. feeding a star baby seemed almost natural, but there's something perverse about feeding this star man."
+		  narrate: "you begin feeding him the food you collected yesterday. feeding a star baby seemed almost natural, but there's something perverse about feeding this star man."
 	      }
 	  ],false);
 
@@ -1613,6 +1608,7 @@ makeScene(DoublePuzzle.prototype.dialogs,
 		      board.load_initial([
 			  "ccccccccccccccccccc...",
 			  "ccccccccccccccccccc...",
+			  "c.....ccc......c......"
 		      ]);
 		      this.inscene = [imgs.moon, imgs[this.sun]]; // reorder for the burn sequence
 		  }

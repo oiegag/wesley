@@ -652,6 +652,7 @@ var Game = function () {
     this.always_skip_dialog = false; // set skip dialog back to this value on entering a level
     this.music = true;
     this.sfx = true;
+    this.always_sfx = true;
     this.invert = true;
 
     lvl = new this.lvls[this.lvl]();
@@ -807,6 +808,7 @@ Game.prototype.mainmenu = function () {
     ctx.fillRect(0,0,cvs.width,cvs.height);
     this.textCenter(selections, 40, cvs.width/2, cvs.height*0.6, MENUFILL);
     this.textCenter(['raising wesley'], 80, cvs.width/2, cvs.height*0.3, MENUFILL);
+    this.textCenter(['use +,=,enter to select'],25,cvs.width/2,cvs.height*0.9, MENUFILL);
     if (this.lvl == 0) {
 	this.textCenter(['continue'], 40, cvs.width/2,cvs.height*0.6, '#a86');
 	if (this.selected == 0) {
@@ -843,6 +845,7 @@ Game.prototype.mainmenu = function () {
 };
 Game.prototype.apply_options = function () {
     this.skip_dialog = this.always_skip_dialog;
+    this.sfx = this.always_sfx;
     if (this.invert) {
 	KEY.rt = 39;
 	KEY.lt = 37;
@@ -853,7 +856,7 @@ Game.prototype.apply_options = function () {
 };
 Game.prototype.options = function () {
     var booltotext = {true:'on',false:'off'};
-    var values = [booltotext[!this.always_skip_dialog],booltotext[this.sfx],booltotext[this.music],booltotext[this.invert]];
+    var values = [booltotext[!this.always_skip_dialog],booltotext[this.always_sfx],booltotext[this.music],booltotext[this.invert]];
     var highlightables = values.concat(['return']);
     var locations = [[550,0],[550,30],[550,60],[550,90],[400,200]], starty = 280;
 
@@ -878,7 +881,7 @@ Game.prototype.options = function () {
 	if (this.selected == 0) { // dialog
 	    this.always_skip_dialog = ! this.always_skip_dialog;
 	} else if (this.selected == 1) { // sfx
-	    this.sfx = ! this.sfx;
+	    this.always_sfx = ! this.always_sfx;
 	} else if (this.selected == 2) { // music
 	    this.music = ! this.music;
 	} else if (this.selected == 3) { // invert
@@ -948,6 +951,7 @@ Game.prototype.dialog_animation = function () {
     if (! lvl.dialog_animation()) {
 	if (! lvl.dialog(true)) {
 	    this.skip_dialog = this.always_skip_dialog;
+	    this.sfx = this.always_sfx;
 	    lvl.total_lines = lvl.lines;
 	    input.reset();
 	    this.gotolater(this.waitcmd);
@@ -998,7 +1002,7 @@ Game.prototype.startrotate = function (val) {
     this.speed = 1/100;
     this.val = val;
     this.last_update = Date.now();
-    snds.rotate.play();
+    this.began = Date.now();
 };
 Game.prototype.startfall = function () {
     this.calllater(this.fall);
@@ -1024,7 +1028,11 @@ Game.prototype.fall = function () {
 	}
 	piece = new ActivePiece(lvl.color,lvl.newpiece());
 	this.returnlater();
-	snds.fallen.play();
+	if (lvl.color == COL_COR) {
+	    snds.fallen.play();
+	} else {
+	    snds.cfallen.play();
+	}
 	lvl.render_play(false);
     } else {
 	lvl.render_play(false);
@@ -1035,9 +1043,10 @@ Game.prototype.fall = function () {
 };
 Game.prototype.gameover = function () {
     lvl.narrate(lvl.gameovertext);
-    if (KEY.en in input.keyEvent) {
+    if (KEY.en in input.keyEvent || KEY.sp in input.keyEvent) {
 	lvl = new this.lvls[this.lvl]();
 	this.skip_dialog = true;
+	this.sfx = false;
 	imgs = {};
 	pats = {};
 	snds = {};
