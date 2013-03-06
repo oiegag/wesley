@@ -679,14 +679,17 @@ Game.prototype.do_clouds = function () {
 	this.cloud.locations = [];
 	this.cloud.velocities = [];
 	this.cloud.update = Date.now();
-	for (var i = 0 ; i < 3 ; i++) {
-	    var vel = 
+	for (var i = 0 ; i < 4 ; i++) {
 	    this.cloud.locations.push([Math.round(-cvs.width/2 + Math.random()*cvs.width*2), Math.round(cvs.height*Math.pow(Math.random(),3))]);
 	    this.cloud.velocities.push(10*(1 + (Math.random() - .25))/1000);
 	}
     }
     for (var i in this.cloud.locations) {
-	ctx.drawImage(imgs.cloud.image,Math.round(this.cloud.locations[i][0]), Math.round(this.cloud.locations[i][1]));
+	if (i < 2) {
+	    ctx.drawImage(imgs.cloud1.image,Math.round(this.cloud.locations[i][0]), Math.round(this.cloud.locations[i][1]));
+	} else {
+	    ctx.drawImage(imgs.cloud2.image,Math.round(this.cloud.locations[i][0]), Math.round(this.cloud.locations[i][1]));
+	}
 	this.cloud.locations[i][0] = this.cloud.locations[i][0] - (now - this.cloud.update)*this.cloud.velocities[i];
 	if (this.cloud.locations[i][0] < -cvs.width/2) {
 	    this.cloud.locations[i][0] = cvs.width*1.5;
@@ -806,6 +809,7 @@ Game.prototype.mainmenu = function () {
 
     ctx.fillStyle = MENUBG;
     ctx.fillRect(0,0,cvs.width,cvs.height);
+    this.do_clouds();
     this.textCenter(selections, 40, cvs.width/2, cvs.height*0.6, MENUFILL);
     this.textCenter(['raising wesley'], 80, cvs.width/2, cvs.height*0.3, MENUFILL);
     this.textCenter(['use +,=,enter to select'],25,cvs.width/2,cvs.height*0.9, MENUFILL);
@@ -1047,9 +1051,7 @@ Game.prototype.gameover = function () {
 	lvl = new this.lvls[this.lvl]();
 	this.skip_dialog = true;
 	this.sfx = false;
-	imgs = {};
-	pats = {};
-	snds = {};
+	globalInit();
 	input.reset();
 	this.gotolater(this.loading);
     }
@@ -1152,11 +1154,12 @@ Game.prototype.tutorial2 = function () {
     piece.render();
 };
 
-
-
-imgs = {};
-pats = {};
-snds = {};
+var globalInit = function () {
+    imgs = {cloud1:new Sprite('cloud1'),cloud2:new Sprite('cloud2')};
+    pats = {};
+    snds = {};
+};
+globalInit();
 input = new Input();
 lvl = {};
 

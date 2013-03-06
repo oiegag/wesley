@@ -28,11 +28,15 @@ SoundFile.prototype.load = function () {
 	}, false);
     }
 };
-SoundFile.prototype.loop = function () {
+SoundFile.prototype.playagainlater = function () {
     this.file.removeEventListener('ended', arguments.callee, false);
     this.file.addEventListener('ended',function () {
 	this.parent.playing = false;
 	this.parent.play();
+	this.removeEventListener('ended', arguments.callee, false);
+	this.addEventListener('ended',function () {
+	    this.parent.playing = false;
+	}, false);
     }, false);
 };
 SoundFile.prototype.end = function () {
@@ -106,7 +110,11 @@ Sound.prototype.register = function(which,working) {
 };
 Sound.prototype.play = function () {
     if (this.loaded && ! this.error && this.playhook()) {
-	this.mine.play();
+	if (this.mine.playing) {
+	    this.mine.playagainlater();
+	} else {
+	    this.mine.play();
+	}
     } else if (this.playhook()) {
 	this.playonload = true;
     }
