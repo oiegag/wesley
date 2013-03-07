@@ -25,9 +25,9 @@
 var STYLES = {
     sleepingbaby:{
 	sky:'#001',
-	sunfill: '#eff',
+	sunfill: '#ffa',
 	moonfill: '#cff',
-	corona:'#eff',
+	corona:'#ffa',
 	outer:'#ffd800',
 	fire:'#660',
 	preview: '#8383f9',
@@ -159,7 +159,7 @@ var SETTINGS = {
 	corona_nm:'rays_sun',
 	fire_nm:'fire',
 	skip:1,
-	timer:5*60,
+	timer:2*60,
 	lines:4
     },
     man:{
@@ -168,7 +168,7 @@ var SETTINGS = {
 	fire_nm:'fire',
 	skip:2,
 	lines:6,
-	timer:60*6
+	timer:60*3
     },
     bigman:{
 	sun:'bigman',
@@ -176,7 +176,7 @@ var SETTINGS = {
 	fire_nm:'fire',
 	skip:3,
 	lines:8,
-	timer:60*6
+	timer:200
     },
     giant:{
 	sun:'giant',
@@ -199,7 +199,7 @@ var SETTINGS = {
 	corona_nm:'rays_sun',
 	fire_nm:'fire',
 	skip:0,
-	timer:90
+	timer:80
     },
 };
 
@@ -1201,6 +1201,7 @@ var AnotherDay = function (initialstate) {
     this.preload();
     this.dialog = this.dialogs[0];
     this.lines = 5;
+    this.timer = 140;
 }
 AnotherDay.prototype = new Level();
 AnotherDay.prototype.postload = function () {
@@ -1476,6 +1477,7 @@ var BigManPuzzle = function (initialstate) {
     this.dialog = this.dialogs[0];
     this.lines = 5;
     this.piececount = 0;
+    this.timer = 4*60;
 }
 BigManPuzzle.prototype = new Level();
 BigManPuzzle.prototype.postload = function () {
@@ -1595,6 +1597,7 @@ var DoublePuzzle = function (initialstate) {
     this.dialog = this.dialogs[0];
     this.failure = false;
     this.lines = 8;
+    this.timer = 3*60;
 }
 DoublePuzzle.prototype = new Level();
 DoublePuzzle.prototype.losecondition = function () {
@@ -1714,6 +1717,7 @@ makeScene(TriplePuzzle.prototype.dialogs,
 		      this.add_fill_hooks();
 		      this.inscene = [imgs[this.sun]];
 		      this.lines = 6;
+		      this.timer = 140;
 		  }
 	      },
 	      {

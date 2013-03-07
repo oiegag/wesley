@@ -771,7 +771,6 @@ Game.prototype.transition_palette = function () {
 	lvl = this.newlevel;
 	delete this.newlevel;
 	input.reset();
-	snds.feast.play();
 	this.gotolater(this.loading);
     } else {
 	lvl.animate();
@@ -1155,7 +1154,7 @@ Game.prototype.tutorial1 = function () {
 
     if (input.dirs.dn) {
 	if (piece.fall_howfar() != 1) {
-	    lvl.tutorial_dialog = "no, use + to rotate your piece to be an upside down u. use <,> to orient the two holes in the ring until they face up. launch the piece with =."
+	    lvl.tutorial_dialog = "no, use + to rotate your piece to be an upside down u. use <,> to orient the two holes until they are centered under your piece. launch the piece with =."
 	} else {
 	    this.startfall();
 	}
