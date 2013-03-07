@@ -25,9 +25,9 @@
 var STYLES = {
     sleepingbaby:{
 	sky:'#001',
-	sunfill: '#ffa',
+	sunfill: '#fff7ad',
 	moonfill: '#cff',
-	corona:'#ffa',
+	corona:'#fff7ad',
 	outer:'#ffd800',
 	fire:'#660',
 	preview: '#8383f9',
