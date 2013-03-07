@@ -1,0 +1,4 @@
+Raising Wesley is an HTML5 block-puzzle game on a polar coordinate grid.
+It's been tested in Chromium, Firefox, and IE9. It seems to even work in
+windows Safari, but Safari does not support Audio elements before 6, so
+it's soundless.
