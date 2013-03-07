@@ -1,3 +1,27 @@
+/*
+   levels.js -- all of the levels
+
+   Copyright 2013 Mike McFadden
+   Author: Mike McFadden <compositiongamesdev@gmail.com>
+   URL: http://github.com/oiegag/wesley
+
+   This file is part of Raising Wesley.
+
+   Raising Wesley is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   
+   Raising Wesley is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+   
+   You should have received a copy of the GNU General Public License
+   along with Raising Wesley.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
 var STYLES = {
     sleepingbaby:{
 	sky:'#001',
@@ -187,9 +211,13 @@ Level.prototype.preload = function () {
 					['sun_head'],['sun_mid'],['sun_foot'],['moon',[0.08*cvs.width,0.9*cvs.height]],
 				        ['lefty'],['righty'],['piece_t'],['piece_straight'],['piece_l'],['piece_cup'],
 				        ['piece_u'],['objectives',[0,0],[17,1]]]);
+    if (this.newpats == undefined) {
+	this.newpats = [];
+    }
     if (this.newsnds == undefined) {
 	this.newsnds = [];
     }
+    this.newpats = this.newpats.concat([['rays_sun',[5,1],[0,1,2,3,4,3,2,1]],['fire',[1,1]]]);
     this.newsnds = this.newsnds.concat([['fallen'],['cfallen'],['feast'],['wheelin'],['moondeath'],['shakeout']]);
 
     this.reset_style();
@@ -779,7 +807,6 @@ var makeScene = function (dialogs,description,continuation) {
 // sleeping baby level tutorial 1
 var SleepingBaby = function () {
     this.newimgs = [['stars',[cvs.width/2,cvs.height/2],[1,3]],['baby',[cvs.ox,cvs.oy],[1,11]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.newsnds = [['sleeping']];
     this.styletype = 'sleepingbaby';
     this.settingtype = 'baby';
@@ -852,7 +879,6 @@ SleepingBaby.prototype.dialogs.push(SleepingBaby.prototype.enter_tutorial);
 var SleepingBabyNeg = function () {
     this.newimgs = [['stars',[cvs.width/2,cvs.height/2],[1,3]],['baby',[cvs.ox,cvs.oy],[1,11]],
 		   ['arrow']];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.styletype = 'sleepingbaby';
     this.settingtype = 'baby';
     this.preload();
@@ -916,7 +942,6 @@ SleepingBabyNeg.prototype.dialogs = [SleepingBabyNeg.prototype.enter_tutorial];
 // waking the baby up
 var WakingBaby = function () {
     this.newimgs = [['stars',[cvs.width/2,cvs.height/2],[1,3]],['baby',[cvs.ox,cvs.oy],[1,11]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.styletype = 'sleepingbaby';
     this.settingtype = 'baby';
     this.preload();
@@ -955,7 +980,6 @@ var WokenBaby = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['stars',[cvs.width/2,cvs.height/2],[1,3]],['baby',[cvs.ox,cvs.oy],[1,11]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.newsnds = [['wakinbabies']];
     this.styletype = 'sleepingbaby';
     this.settingtype = 'baby';
@@ -1008,7 +1032,8 @@ makeScene(WokenBaby.prototype.dialogs,
 			  "ccc....ccccccccccccccc",
 			  "ccc....ccccccccccccccc",
 			  "ccc....ccccccccccccccc",
-			  ".......c.............."
+			  ".c.....cc.cccccc..cc.c",
+			  ".......c...cc..c..c..."
 		      ]);
 		  }
 	      },
@@ -1028,7 +1053,6 @@ var BigBaby = function (initialstate) {
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['stars',[cvs.width/2,cvs.height/2],[1,3]],['baby',[cvs.ox,cvs.oy],[1,11]],
 		   ['bigbaby',[cvs.ox,cvs.oy],[1,11]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.styletype = 'babyface';
     this.settingtype = 'baby';
     this.preload();
@@ -1105,7 +1129,6 @@ var MoonSucks = function (initialstate) {
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['stars',[cvs.width/2,cvs.height/2],[1,3]],
 		   ['bigbaby',[cvs.ox,cvs.oy],[1,11]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.styletype = 'bigbaby';
     this.settingtype = 'bigbaby';
     this.preload();
@@ -1159,7 +1182,7 @@ makeScene(MoonSucks.prototype.dialogs,
 		  }
 	      },
 	      {
-		  moon: "hey you! my feeding skills are not what they used to be. i have tangled him up, but i am out of pieces. it is getting cranky. use what you have to feed it.",
+		  moon: "hey you! my feeding skills are not what they used to be. i have tangled it up, but i am out of pieces. it is getting cranky. use what you have to feed it.",
 		  action: ['moon_set','sun_rise']
 	      }
 	  ], false);;
@@ -1172,7 +1195,6 @@ var AnotherDay = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['bigbaby',[cvs.ox,cvs.oy],[1,11]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.newsnds = [['wakinbabies']];
     this.styletype = 'bigbaby';
     this.settingtype = 'bigbaby';
@@ -1217,7 +1239,6 @@ var AnotherPuzzle = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['bigbaby',[cvs.ox,cvs.oy],[1,11]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.styletype = 'bigbaby';
     this.settingtype = 'bigbaby';
     this.preload();
@@ -1253,7 +1274,7 @@ makeScene(AnotherPuzzle.prototype.dialogs,
 		  }
 	      },
 	      {
-		  narrate: '...but detecting a pattern to your life, you turn back early to see if there is some sort of puzzle to complete.',
+		  narrate: "...but detecting a pattern to your life, you turn back early to see if there's some sort of puzzle to complete.",
 		  action: 'sun_rise',
 	      },
 	      {
@@ -1267,7 +1288,6 @@ var StarMan = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['man',[cvs.ox,cvs.oy]],['bigbaby',[cvs.ox,cvs.oy],[1,11]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.newsnds = [['mansong']];
     this.styletype = 'bigbaby';
     this.settingtype = 'bigbaby';
@@ -1340,7 +1360,6 @@ var WesleyPuzzle = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['man',[cvs.ox,cvs.oy]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.styletype = 'manface';
     this.settingtype = 'man';
     this.preload();
@@ -1396,7 +1415,6 @@ var BigMan = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['man',[cvs.ox,cvs.oy]],['bigman',[cvs.ox,cvs.oy]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.newsnds = [['mansong']];
     this.styletype = 'manface';
     this.settingtype = 'man';
@@ -1452,7 +1470,6 @@ var BigManPuzzle = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['bigman',[cvs.ox,cvs.oy]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.styletype = 'bigman';
     this.settingtype = 'bigman';
     this.preload();
@@ -1499,7 +1516,6 @@ var Giant = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['bigman',[cvs.ox,cvs.oy]],['giant',[cvs.ox,cvs.oy]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.styletype = 'bigman';
     this.settingtype = 'bigman';
     this.preload();
@@ -1571,7 +1587,6 @@ var DoublePuzzle = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['giant',[cvs.ox,cvs.oy]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.styletype = 'giant';
     this.settingtype = 'giant';
     this.preload();
@@ -1644,13 +1659,11 @@ var TriplePuzzle = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['giant',[cvs.ox,cvs.oy]],['biggiant',[cvs.ox,cvs.oy]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.styletype = 'giant';
     this.settingtype = 'giant';
     this.preload();
     this.dialog = this.dialogs[0];
     this.failure = false;
-    this.lines = 6;
 }
 TriplePuzzle.prototype = new Level();
 TriplePuzzle.prototype.losecondition = function () {
@@ -1696,6 +1709,7 @@ makeScene(TriplePuzzle.prototype.dialogs,
 		      this.reset_style();
 		      this.add_fill_hooks();
 		      this.inscene = [imgs[this.sun]];
+		      this.lines = 6;
 		  }
 	      },
 	      {
@@ -1716,7 +1730,6 @@ var CleanupPuzzle = function (initialstate) {
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['stars',[cvs.width/2,cvs.height/2],[1,3]],
 		    ['biggiant',[cvs.ox,cvs.oy]],['skull',[cvs.ox, cvs.oy]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.styletype = 'biggiant';
     this.settingtype = 'biggiant';
     this.preload();
@@ -1779,7 +1792,6 @@ makeScene(CleanupPuzzle.prototype.dialogs,
 // waiting
 var Waiting = function () {
     this.newimgs = [['stars',[cvs.width/2,cvs.height/2],[1,3]],['skull',[cvs.ox, cvs.oy]]];
-    this.newpats = [['rays_sun',[1,1]],['fire',[1,1]]];
     this.newsnds = [['sleeping']];
     this.styletype = 'skull_nontoxic';
     this.settingtype = 'skull';
@@ -1795,7 +1807,7 @@ Waiting.prototype.postload = function () {
     this.bg.seq = [0,1,0,2];
     this.bg.anispeed = 200;
     this.inscene.push(imgs[this.sun]);
-    this.sleeping.play();
+    snds.sleeping.play();
 };
 Waiting.prototype.dialogs = [];
 makeScene(Waiting.prototype.dialogs,

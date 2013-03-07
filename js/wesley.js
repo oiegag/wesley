@@ -1,3 +1,27 @@
+/*
+   wesley.js -- main setup
+
+   Copyright 2013 Mike McFadden
+   Author: Mike McFadden <compositiongamesdev@gmail.com>
+   URL: http://github.com/oiegag/wesley
+
+   This file is part of Raising Wesley.
+
+   Raising Wesley is free software: you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+   
+   Raising Wesley is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+   
+   You should have received a copy of the GNU General Public License
+   along with Raising Wesley.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
 // remove the no javascript warning
 document.getElementById("warning").style.display = "none";
 // constants
@@ -212,7 +236,7 @@ var Pattern = function(src,sheet,seq) {
 };
 Pattern.prototype.animate = function () {
     var now = Date.now();
-    if (now - this.last_update > 400) {
+    if (now - this.last_update > 150) {
 	this.seqnum = realMod(this.seqnum + 1, this.seq.length);
 	this.pat = this.pats[this.seq[this.seqnum]];
 	this.last_update = now;
@@ -642,7 +666,7 @@ Input.prototype.reset = function () {
 };
 
 var Game = function () {
-    this.gotolater(this.mainmenu);
+    this.gotolater(this.load_before_levels);
     this.selected = 0;
     this.lvls = [SleepingBaby,SleepingBabyNeg,WakingBaby,WokenBaby,BigBaby,MoonSucks,AnotherDay,AnotherPuzzle,
 		 StarMan,WesleyPuzzle,BigMan,BigManPuzzle,
@@ -657,6 +681,29 @@ var Game = function () {
 
     lvl = new this.lvls[this.lvl]();
     setTimeout(this.callback,FRIENDLY);
+};
+Game.prototype.load_before_levels = function () {
+    ctx.fillStyle = MENUBG;
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    this.textCenter(['loading'], 20, cvs.width/2, cvs.height*0.6, MENUFILL);
+
+    for (var i in imgs) {
+	if (! imgs[i].ready) {
+	    return;
+	}
+    }
+    this.began = Date.now();
+    imgs.logo.ox = cvs.width/2;
+    imgs.logo.oy = cvs.height/2;
+    this.gotolater(this.logo);
+};
+Game.prototype.logo = function () {
+    ctx.fillStyle = MENUBG;
+    ctx.fillRect(0,0,cvs.width,cvs.height);
+    imgs.logo.render();
+    if ((Date.now() - this.began) > 2000) {
+	this.gotolater(this.mainmenu);
+    }
 };
 Game.prototype.save_level = function () {
     // wrapper for either set cookie or a kongregate api later on
@@ -800,9 +847,12 @@ Game.prototype.textRight = function (strs,font,endx,starty,color) {
 Game.prototype.draw_credits = function () {
     ctx.fillStyle = MENUBG;
     ctx.fillRect(0,0,cvs.width,cvs.height);
-    this.textLeft(['mike mcfadden','kate mcfadden','mike and kate','','','','this work was made possible by:','inkscape, fontforge, chromium'], 35, 20, 100, MENUFILL);
-    this.textRight(['code,music','art','story, sound effects'], 35, cvs.width-20, 100, MENUFILL);
-    this.textRight(['abcdefghijklmnopqrstuvwxyz',':!?,.()[]1234567890<>+=\''], 19, cvs.width-20, 500, MENUFILL);
+    this.textLeft(['mike mcfadden','kate mcfadden','mike and kate'],25,20,100,MENUFILL);
+    this.textRight(['code, music','art','story, sound effects'],25,cvs.width-20,100,MENUFILL);
+    this.textCenter(['freesound.org field recordings'],25,cvs.width/2,250,MENUFILL);
+    this.textLeft(['strangy','kyster','corsica_s'],25,60,300,MENUFILL);
+    this.textRight(['wind in the grass small town','henne beach waves and seagulls','toronto_chinatown'],25,cvs.width-20,300,MENUFILL);
+    this.textCenter(['thanks to the maintainers of inkscape and fontforge'], 25, cvs.width/2, 450, MENUFILL);
 };
 Game.prototype.mainmenu = function () {
     var selections = ['continue','new game','options','credits'];
@@ -861,7 +911,7 @@ Game.prototype.apply_options = function () {
 Game.prototype.options = function () {
     var booltotext = {true:'on',false:'off'};
     var values = [booltotext[!this.always_skip_dialog],booltotext[this.always_sfx],booltotext[this.music],booltotext[this.invert]];
-    var highlightables = values.concat(['return']);
+    var highlightables = values.concat(['return to menu']);
     var locations = [[550,0],[550,30],[550,60],[550,90],[400,200]], starty = 280;
 
     ctx.fillStyle = MENUBG;
@@ -869,9 +919,9 @@ Game.prototype.options = function () {
 
     this.textLeft(['story','sound effects','music','invert </>'], 30, 200, starty, MENUFILL);
     this.textCenter(values, 30, 550, starty, MENUFILL);
-    this.textCenter(['return'], 30, locations[values.length][0], locations[values.length][1]+starty, MENUFILL);
+    this.textCenter(['return to menu'], 30, locations[values.length][0], locations[values.length][1]+starty, MENUFILL);
     this.textCenter([highlightables[this.selected]],30,locations[this.selected][0],locations[this.selected][1] + starty, MENUSELECTED);
-    this.textCenter(['use up, down, and enter to change options'],30,400,100,MENUFILL);
+    this.textCenter(['use +, =, and enter to change options'],30,400,100,MENUFILL);
     if (KEY.dn in input.keyEvent) {
 	delete input.keyEvent[KEY.dn];
 	this.selected = realMod(this.selected+1,highlightables.length);
@@ -1155,7 +1205,7 @@ Game.prototype.tutorial2 = function () {
 };
 
 var globalInit = function () {
-    imgs = {cloud1:new Sprite('cloud1'),cloud2:new Sprite('cloud2')};
+    imgs = {cloud1:new Sprite('cloud1'),cloud2:new Sprite('cloud2'),logo:new Sprite('logo')};
     pats = {};
     snds = {};
 };
