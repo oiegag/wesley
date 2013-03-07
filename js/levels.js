@@ -218,7 +218,7 @@ Level.prototype.preload = function () {
 	this.newsnds = [];
     }
     this.newpats = this.newpats.concat([['rays_sun',[5,1],[0,1,2,3,4,3,2,1]],['fire',[1,1]]]);
-    this.newsnds = this.newsnds.concat([['fallen'],['cfallen'],['feast'],['wheelin'],['moondeath'],['shakeout']]);
+    this.newsnds = this.newsnds.concat([['fallen'],['cfallen'],['feast'],['wheelin'],['moondeath'],['shakeout'],['winbing']]);
 
     this.reset_style();
     this.reset_settings();

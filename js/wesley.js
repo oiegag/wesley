@@ -771,6 +771,7 @@ Game.prototype.transition_palette = function () {
 	lvl = this.newlevel;
 	delete this.newlevel;
 	input.reset();
+	snds.winbing.play();
 	this.gotolater(this.loading);
     } else {
 	lvl.animate();
