@@ -25,9 +25,9 @@
 var STYLES = {
     sleepingbaby:{
 	sky:'#001',
-	sunfill: '#cff',
+	sunfill: '#eff',
 	moonfill: '#cff',
-	corona:'#cff',
+	corona:'#eff',
 	outer:'#ffd800',
 	fire:'#660',
 	preview: '#8383f9',
@@ -183,8 +183,8 @@ var SETTINGS = {
 	corona_nm:'rays_sun',
 	fire_nm:'fire',
 	skip:4,
-	lines:10,
-	timer:60*6
+	lines:4,
+	timer:60*3
     },
     biggiant:{
 	sun:'biggiant',
@@ -840,14 +840,14 @@ makeScene(SleepingBaby.prototype.dialogs,
 		  action: 'moon_rise'
 	      },
 	      {
-		  narrate:"when moon comes, you talk a while. you listen, but something is on your mind.\n \n [moon, it's cold and dark, and there's not much to do here. in all of your travels, have you found some way to make things better?]\n \n moon is quiet a moment and looks thoughtful, like moons do."
+		  narrate:"when moon comes, he talks a while. you listen, but something is on your mind.\n \n [moon, it's cold and dark, and there's not much to do here. in all of your travels, have you found some way to make things better?]\n \n moon is quiet a moment and looks thoughtful, like moons do."
 	      },
 	      {
-		  moon:"there is a way... a star can bring warmth and light. your star sleeps, but i can tell you how to wake him. should i?",
+		  moon:"there is a way... a star can bring warmth and light. your star sleeps, but i can tell you how to wake it. should i?",
 		  action: 'sun_rise'
 	      },
 	      {
-		  narrate:"you consider the star baby a while, then you consider playing a different game with fewer words in it but finally you decide against it. [all right moon. how do i wake a star baby?]",
+		  narrate:"you consider the star baby a while. it's strange you've never thought about it before. [all right moon. how do i wake a star baby?]",
 	      },
 	      {
 		  moon:"stars need food to live. surround a star by a ring of food, and it will burn. feed it enough, and it will shine.",
@@ -1321,7 +1321,7 @@ makeScene(StarMan.prototype.dialogs,
 		  }
 	      },
 	      {
-		  narrate: "when you wake, you are surprised to find that the star baby has become a little star man.\n \n moon is already, awake chatting with him about grown up subjects. you come over and catch the end of the conversation.",
+		  narrate: "when you wake, you are surprised to find that the star baby has become a little star man.\n \n moon is already awake, chatting with him about grown up subjects. you come over and catch the end of the conversation.",
 	      },
 	      {
 		  sun: "...and that's why it's so important to use a firm handshake at the beginning of an interview!",
@@ -1516,6 +1516,7 @@ var Giant = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['bigman',[cvs.ox,cvs.oy]],['giant',[cvs.ox,cvs.oy]]];
+    this.newsnds = [['giant']];
     this.styletype = 'bigman';
     this.settingtype = 'bigman';
     this.preload();
@@ -1529,6 +1530,7 @@ Giant.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.sky;
     this.inscene.push(imgs[this.sun]);
+    snds.giant.play();
 };
 Giant.prototype.dialogs = [];
 makeScene(Giant.prototype.dialogs,
@@ -1659,6 +1661,7 @@ var TriplePuzzle = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['giant',[cvs.ox,cvs.oy]],['biggiant',[cvs.ox,cvs.oy]]];
+    this.newsnds = [['giant']];
     this.styletype = 'giant';
     this.settingtype = 'giant';
     this.preload();
@@ -1681,6 +1684,7 @@ TriplePuzzle.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.sky;
     this.inscene.push(imgs[this.sun]);
+    snds.giant.play();
 };
 TriplePuzzle.prototype.feast = function () {
     var ret = Level.prototype.feast();
@@ -1813,7 +1817,7 @@ Waiting.prototype.dialogs = [];
 makeScene(Waiting.prototype.dialogs,
 	  [
 	      {
-		  narrate: "with the smoke cleared, you are safe, but you are alone with only a narrator to remind you of your misery.\n \n you orbit the skull for centuries. fortunately, the centuries were uneventful and will go unnarrated."
+		  narrate: "with the smoke cleared, you are safe, but you are alone with only a narrator to remind you of your misery.\n \n you orbit the skull for centuries. fortunately, the centuries are uneventful and will go unnarrated."
 	      },
 	      {
 		  narrate: "finally, even your narrator leaves you alone with your star baby skull and your puzzle pieces to do as you wish."

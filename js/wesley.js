@@ -771,6 +771,7 @@ Game.prototype.transition_palette = function () {
 	lvl = this.newlevel;
 	delete this.newlevel;
 	input.reset();
+	snds.feast.play();
 	this.gotolater(this.loading);
     } else {
 	lvl.animate();
@@ -847,12 +848,12 @@ Game.prototype.textRight = function (strs,font,endx,starty,color) {
 Game.prototype.draw_credits = function () {
     ctx.fillStyle = MENUBG;
     ctx.fillRect(0,0,cvs.width,cvs.height);
-    this.textLeft(['mike mcfadden','kate mcfadden','mike and kate'],25,20,100,MENUFILL);
-    this.textRight(['code, music','art','story, sound effects'],25,cvs.width-20,100,MENUFILL);
+    this.textLeft(['mike mcfadden','kate mcfadden','mike and kate'],25,60,100,MENUFILL);
+    this.textRight(['code, music','art','story, sound effects'],25,cvs.width-60,100,MENUFILL);
     this.textCenter(['freesound.org field recordings'],25,cvs.width/2,250,MENUFILL);
     this.textLeft(['strangy','kyster','corsica_s'],25,60,300,MENUFILL);
-    this.textRight(['wind in the grass small town','henne beach waves and seagulls','toronto_chinatown'],25,cvs.width-20,300,MENUFILL);
-    this.textCenter(['thanks to the maintainers of inkscape and fontforge'], 25, cvs.width/2, 450, MENUFILL);
+    this.textRight(['wind in the grass small town','henne beach waves and seagulls','toronto_chinatown'],25,cvs.width-60,300,MENUFILL);
+    this.textCenter(['thanks to the maintainers', 'of inkscape and fontforge'], 25, cvs.width/2, 450, MENUFILL);
 };
 Game.prototype.mainmenu = function () {
     var selections = ['continue','new game','options','credits'];
@@ -1154,7 +1155,7 @@ Game.prototype.tutorial1 = function () {
 
     if (input.dirs.dn) {
 	if (piece.fall_howfar() != 1) {
-	    lvl.tutorial_dialog = "hold on. there is no time limit. you want to complete the innermost ring to feed him.";
+	    lvl.tutorial_dialog = "no, use + to rotate your piece to be an upside down u. use <,> to orient the two holes in the ring until they face up. launch the piece with =."
 	} else {
 	    this.startfall();
 	}
