@@ -269,7 +269,7 @@ Level.prototype.reset_style = function() {
     }
 
 };
-Level.prototype.gameovertext = "you, or something important to you is now dead. you may continue from your last save state.";
+Level.prototype.gameovertext = "that won't work. you may continue from your last save state.";
 Level.prototype.startloading = function (these,constructor,where) {
     var loaded = 0;
     for (var i in these) {
@@ -952,6 +952,7 @@ var WakingBaby = function (initialstate) {
     this.lines = 3;
 };
 WakingBaby.prototype = new Level();
+WakingBaby.prototype.gameovertext = "while stacking the pieces high does seem entertaining, you have to feed the baby complete rings to wake it up.";
 WakingBaby.prototype.initialstate = [
     ".............c.c.c.....",
     "...............c.c.....",
@@ -1039,7 +1040,7 @@ makeScene(WokenBaby.prototype.dialogs,
 		  }
 	      },
 	      {
-		  moon: "you! you! wake up! i forgot you must keep feeding these things or they die. it has picked up some food floating in space, but you need to use your last three pieces to complete the rings. \n i hope you figure it out, i do not want to be caught with another dead baby.",
+		  moon: "you! you! wake up! i forgot you must keep feeding these things or they die. it picked up some food floating by, but you need to use your last three pieces to fill the rings. \n i hope you figure this out, i do not want to be caught with another dead baby.",
 		  action: 'moon_set'
 	      }
 	  ],false);
@@ -1481,6 +1482,7 @@ var BigManPuzzle = function (initialstate) {
     this.timer = 4*60;
 }
 BigManPuzzle.prototype = new Level();
+BigManPuzzle.prototype.gameovertext = "you need to feed wesley clean-up rings. try again from  your last save state.";
 BigManPuzzle.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.sky;
@@ -1563,7 +1565,7 @@ makeScene(Giant.prototype.dialogs,
 	      },
 	      {
 		  sun: "you! it is time for wetsley to feed.",
-		  narrate: "[we had a deal. you said i could have today off, remember?]",
+		  narrate: "[but we had a deal. you said i could have today off, remember?]",
 	      },
 	      {
 		  sun: "wetsley remembers, but now wetsley offers a new deal: you will feed him and he will not burn you to ash with his beautiful crimson rays.",
@@ -1601,6 +1603,7 @@ var DoublePuzzle = function (initialstate) {
     this.timer = 3*60;
 }
 DoublePuzzle.prototype = new Level();
+DoublePuzzle.prototype.gameovertext = "feed wetsley again: no singles. you may start from your last save state.";
 DoublePuzzle.prototype.losecondition = function () {
     var now = Date.now();
     if (this.failure) {
@@ -1673,6 +1676,7 @@ var TriplePuzzle = function (initialstate) {
     this.failure = false;
 }
 TriplePuzzle.prototype = new Level();
+TriplePuzzle.prototype.gameovertext = "triples only. feed wetsley again.";
 TriplePuzzle.prototype.losecondition = function () {
     var now = Date.now();
     if (this.failure) {
@@ -1745,6 +1749,7 @@ var CleanupPuzzle = function (initialstate) {
     this.dialog = this.dialogs[0];
 }
 CleanupPuzzle.prototype = new Level();
+CleanupPuzzle.prototype.gameovertext = "you die of exposure to toxic fumes. try again from your last save state.";
 CleanupPuzzle.prototype.wincondition = function () {
     for (var i = 0 ; i < board.nrows ; i++) {
 	for (var j = 0 ; j < board.ncols ; j++) {
@@ -1810,6 +1815,7 @@ var Waiting = function () {
     this.timer = 1/0;
 }
 Waiting.prototype = new Level();
+Waiting.prototype.gameovertext = "you have successfully died. however, between you and me, if you get ten rings we'll give you one last animation and a credits screen.";
 Waiting.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.stars;
