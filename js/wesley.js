@@ -547,10 +547,7 @@ ActivePiece.prototype.render = function (offset) {
 
 };
 ActivePiece.prototype.rotate = function () {
-    this.rot = this.rot -= PI/2;
-    if (Math.abs(this.rot - 2*PI) < 1e-3) {
-	this.rot = 0;
-    }
+    this.rot = realMod(this.rot - 1,4);
 };
 ActivePiece.prototype.draw_piece = function (r,t,color) {
     var offsets = piece.get_offsets();
@@ -564,8 +561,8 @@ ActivePiece.prototype.get_offsets = function () {
     for (var i = 0 ; i < this.types[this.type].length ; i++) {
 	var oi = this.types[this.type][i][0];
 	var oj = this.types[this.type][i][1];
-	var noi = Math.round(Math.cos(this.rot))*oi + Math.round(Math.sin(this.rot))*oj;
-	var noj = -Math.round(Math.sin(this.rot))*oi + Math.round(Math.cos(this.rot))*oj;
+	var noi = Math.round(Math.cos(this.rot*PI/2))*oi + Math.round(Math.sin(this.rot*PI/2))*oj;
+	var noj = -Math.round(Math.sin(this.rot*PI/2))*oi + Math.round(Math.cos(this.rot*PI/2))*oj;
 	out.push([Math.round(noi),Math.round(noj)]);
     }
     return out;
