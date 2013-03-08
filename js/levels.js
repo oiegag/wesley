@@ -940,7 +940,10 @@ SleepingBabyNeg.prototype.dialogs = [SleepingBabyNeg.prototype.enter_tutorial];
 
 
 // waking the baby up
-var WakingBaby = function () {
+var WakingBaby = function (initialstate) {
+    if (initialstate) {
+	this.initialstate = initialstate;
+    }
     this.newimgs = [['stars',[cvs.width/2,cvs.height/2],[1,3]],['baby',[cvs.ox,cvs.oy],[1,11]]];
     this.styletype = 'sleepingbaby';
     this.settingtype = 'baby';
@@ -949,14 +952,12 @@ var WakingBaby = function () {
     this.lines = 3;
 };
 WakingBaby.prototype = new Level();
+WakingBaby.prototype.initialstate = [
+    ".............c.c.c.....",
+    "...............c.c.....",
+];
 WakingBaby.prototype.postload = function () {
-    if (typeof(board) != "undefined") {
-	var saveboard = board;
-	Level.prototype.postload.call(this);
-	board = saveboard;
-    } else {
-	Level.prototype.postload.call(this);
-    }
+    Level.prototype.postload.call(this);
     this.inscene.push(imgs.moon);
     this.inscene.push(imgs[this.sun]);
     this.bg = imgs.stars;
@@ -1497,9 +1498,9 @@ makeScene(BigManPuzzle.prototype.dialogs,
 		  action: 'fade_out',
 		  args: function () {
 		      board.load_initial([
+			  "nnnnccccnncnnnnnnnn...",
 			  "ccccccccccccccccccc...",
-			  "ccccccccccccccccccc...",
-			  "ccccccccccccccccccc...",
+			  "cc.cccccccc.ccc.ccc...",
 		      ]);
 		  }
 	      },
