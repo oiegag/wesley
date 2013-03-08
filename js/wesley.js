@@ -1155,7 +1155,7 @@ Game.prototype.tutorial1 = function () {
 
     if (input.dirs.dn) {
 	if (piece.fall_howfar() != 1) {
-	    lvl.tutorial_dialog = "no, use + to rotate your piece to be an upside down u. use <,> to orient the two holes until they are centered under your piece. launch the piece with =."
+	    lvl.tutorial_dialog = "use + to rotate your piece, then use < or > to rotate the star until the holes on the surface are in the shadow of the piece, then launch with =."
 	} else {
 	    this.startfall();
 	}

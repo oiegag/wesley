@@ -863,7 +863,7 @@ SleepingBaby.prototype.enter_tutorial = function (update) {
     this.narrate("");
     this.draw_scene();
     this.moon_dialog("have you ever wondered about those puzzle pieces you like to count? \n star food!");
-    this.tutorial_dialog = "try feeding him this one. \n \n use < and > to maneuver. use + to rotate the piece. when you like your position, press = to launch.";
+    this.tutorial_dialog = "try feeding him this one. \n \n use + to rotate the piece. use < and > to spin the star. when you like your position, press = to launch.";
     this.dialog_animation = function () {
 	game.gotolater(game.tutorial1);
 	delete this.dialog_animation;
