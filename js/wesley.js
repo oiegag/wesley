@@ -145,6 +145,16 @@ var realMod = function(n,m) {
     }
     return n;
 };
+var rangeN = function (begin,end) {
+    var out = [];
+    if (end < begin) {
+	return out;
+    }
+    for (var i = begin ; i < end ; i++) {
+	out.push(i);
+    }
+    return out;
+};
 var repeatN = function (m,n) { // m n times
     var out = [];
     for (var i = 0 ; i < n ; i++) {

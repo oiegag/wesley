@@ -225,6 +225,7 @@ Level.prototype.preload = function () {
 
     this.color = COL_COR; // stores what the new pieces come in as
     this.inscene = [];
+    this.piecebatch = [];
     this.rot = 0;
 };
 Level.prototype.refresh_board = function () {
@@ -397,7 +398,17 @@ Level.prototype.newpiece = function () {
     return this.pieces.pop();
 };
 Level.prototype.nextpiece = function () {
-    return randN(ActivePiece.prototype.pics.length);
+    if (this.piecebatch.length == 0) {
+	var batch = [0,0,1,1,2,2,3,3,4,4]; // our current batch o pieces
+	var perms = rangeN(0,batch.length);
+	while (perms.length > 0) {
+	    var newind = randN(perms.length);
+	    this.piecebatch.push(batch[perms[newind]]);
+	    perms = removeAll(perms,perms[newind]);
+	}
+    }
+	
+    return this.piecebatch.pop();
 };
 
 Level.prototype.draw_piece_pics = function () {
@@ -1082,7 +1093,7 @@ makeScene(BigBaby.prototype.dialogs,
 		  action: 'moon_rise'
 	      },
 	      {
-		  moon: "that was close. i suppose our days of napping are over for now. i am going out to find more puzzle pieces. i suggest you do the same.",
+		  moon: "that was close. i am going to take another nap. i suggest you go find some more puzzle pieces.",
 		  action: 'moon_set'
 	      },
 	      {
