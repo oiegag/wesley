@@ -62,6 +62,17 @@ SoundFile.prototype.playagainlater = function () {
 	}, false);
     }, false);
 };
+SoundFile.prototype.set_callback = function (what) {
+    this.file.removeEventListener('ended', arguments.callee, false);
+    this.file.addEventListener('ended',function () {
+	this.parent.playing = false;
+	what();
+	this.removeEventListener('ended', arguments.callee, false);
+	this.addEventListener('ended',function () {
+	    this.parent.playing = false;
+	}, false);
+    }, false);
+};
 SoundFile.prototype.end = function () {
     if (! this.playing || this.error) {
 	return;
@@ -120,6 +131,9 @@ Sound.prototype.register = function(which,working) {
 	if (this.playonload) {
 	    this.mine.play();
 	}
+	if (this.setcallbackonload) {
+	    this.mine.set_callback(this.callback);
+	}
     } else {
 	this.trying++;
 	if (this.trying == this.trylist.length) {
@@ -140,6 +154,14 @@ Sound.prototype.play = function () {
 	}
     } else if (this.playhook()) {
 	this.playonload = true;
+    }
+};
+Sound.prototype.set_callback = function (what) {
+    if (this.loaded && ! this.error && this.playhook()) {
+	this.mine.set_callback(what);
+    } else if (this.playhook()) {
+	this.setcallbackonload = true;
+	this.callback = what;
     }
 };
 Sound.prototype.end = function () {

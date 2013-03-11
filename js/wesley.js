@@ -476,6 +476,7 @@ Board.prototype.rotate = function (off) {
 
 Board.prototype.jettison = function () {
     // all negatives with nothing above them are jettisoned off
+    var jettisoned = [];
     var foundcorona = false;
     for (var j = 0 ; j < board.ncols ; j++) {
 	foundcorona = false;
@@ -483,12 +484,14 @@ Board.prototype.jettison = function () {
 	    if (board[i][j] == COL_COR) {
 		foundcorona = true;
 	    } else if (board[i][j] == COL_NEG && ! foundcorona) {
+		jettisoned.push([i,j]);
 		board[i][j] = COL_NON;
 	    } else if (board[i][j] == COL_NON && foundcorona) {
 		board[i][j] = COL_NEG;
 	    }
 	}
     }
+    return jettisoned;
 };
 
 var ActivePiece = function (color,type) {
@@ -683,6 +686,7 @@ var Game = function () {
     this.sfx = true;
     this.always_sfx = true;
     this.invert = true;
+    this.soundtrack = [];
 
     lvl = new this.lvls[this.lvl]();
     setTimeout(this.callback,FRIENDLY);
@@ -962,6 +966,9 @@ Game.prototype.returntomenu = function () {
 Game.prototype.gotolater = function (state) {
     this.state = [state];
 };
+Game.prototype.goto_over = function (state) { // like goto but keeps stack the same
+    this.state[this.state.length-1] = state;
+};
 Game.prototype.calllater = function (state) {
     this.state.push(state);
 };
@@ -973,9 +980,13 @@ Game.prototype.callback = function () {
     setTimeout(game.callback,FRIENDLY);
 };
 Game.prototype.loading = function () {
+    ctx.fillStyle = MENUBG;
+    ctx.fillRect(cvs.width/2-60,cvs.height/2,120,25);
+    this.textCenter(['loading'], 25, cvs.width/2, cvs.height/2-3, MENUFILL);
     if(lvl.load()) {
 	lvl.postload();
 	input.reset();
+	this.cloud.update = Date.now();
 	lvl.dialog(false);
 	this.gotolater(this.dialog);
     }
@@ -1045,6 +1056,7 @@ Game.prototype.rotate = function () {
 	    this.speed = 1/50;
 	} else {
 	    imgs[lvl.sun].tilt = 0;
+	    snds.thud.play();
 	    this.returnlater();
 	    lvl.rotate(this.val);
 	}
@@ -1057,9 +1069,26 @@ Game.prototype.rotate = function () {
     lvl.animate();
     lvl.interp_palette('dying',(lvl.timer-30)*1000);
 };
+Game.prototype.enqueue = function(soundtrack) {
+    playnext = function () {
+	game.soundtrack.pop();
+	if (game.soundtrack.length == 0) {
+	    game.soundtrack = [snds.ambient];
+	}
+	var newbie = game.soundtrack[game.soundtrack.length-1];
+	newbie.play();
+	newbie.set_callback(playnext);
+    };
+    this.soundtrack.push(soundtrack);
+    if (this.soundtrack.length == 1) {
+	soundtrack.play();
+	this.soundtrack[this.soundtrack.length-1].set_callback(playnext);
+    }
+};
+
 Game.prototype.startrotate = function (val) {
     this.calllater(this.rotate);
-    this.speed = 1/100;
+    this.speed = 1/120;
     this.val = val;
     this.last_update = Date.now();
     this.began = Date.now();
@@ -1080,26 +1109,53 @@ Game.prototype.fall = function () {
     if (this.fallen > (piece.i - this.fallto)) {
 	piece.i = this.fallto;
 	board.setto(piece,piece.color);
-	board.jettison();
-	var reduced = lvl.feast();
-	if (reduced > 0) {
-	    lvl.lines -= reduced;
-	    snds.feast.play();
+	this.jettison_me = board.jettison();
+	lvl.render_play(false);
+	if (this.jettison_me.length == 0) {
+	    this.end_of_fall();
+	} else {
+	    this.last_update = Date.now();
+	    this.jetsetter(0);
+	    this.goto_over(this.jettison_animate);
 	}
-	piece = new ActivePiece(lvl.color,lvl.newpiece());
-	this.returnlater();
 	if (lvl.color == COL_COR) {
 	    snds.fallen.play();
 	} else {
 	    snds.cfallen.play();
 	}
-	lvl.render_play(false);
     } else {
 	lvl.render_play(false);
 	piece.render(this.fallen);
     }
     lvl.animate();
     lvl.interp_palette('dying',(lvl.timer-30)*1000);
+};
+Game.prototype.jetsetter = function (tfrac) {
+    ctx.globalAlpha = 1 - tfrac;
+    for (var i in this.jettison_me) {
+	board.draw_box(this.jettison_me[i][0],this.jettison_me[i][1],lvl.fire);
+	board.draw_box(this.jettison_me[i][0],this.jettison_me[i][1],lvl.fire_pat.pat);
+    }
+    ctx.globalAlpha = 1;
+};
+Game.prototype.jettison_animate = function () {
+    var now = Date.now(), tfrac = (now - this.last_update)/250;
+    lvl.render_play(false);
+    if (tfrac < 1) {
+	this.jetsetter(tfrac);
+    } else {
+	this.end_of_fall();
+	lvl.render_play(false);
+    }
+};
+Game.prototype.end_of_fall = function () {
+    var reduced = lvl.feast();
+    if (reduced > 0) {
+	lvl.lines -= reduced;
+	snds.feast.play();
+    }
+    piece = new ActivePiece(lvl.color,lvl.newpiece());
+    this.returnlater();
 };
 Game.prototype.gameover = function () {
     lvl.narrate(lvl.gameovertext);
@@ -1160,7 +1216,7 @@ Game.prototype.tutorial1 = function () {
 
     if (input.dirs.dn) {
 	if (piece.fall_howfar() != 1) {
-	    lvl.tutorial_dialog = "use + to rotate your piece, then use < or > to rotate the star until the holes on the surface are in the shadow of the piece, then launch with =."
+	    lvl.tutorial_dialog = "use + to rotate your piece. then, use < or > to rotate the star until those two holes on the surface are in the shadow of the piece. next, launch with =."
 	} else {
 	    this.startfall();
 	}
@@ -1179,7 +1235,7 @@ Game.prototype.tutorial2 = function () {
 
     if (input.dirs.dn) {
 	if (piece.color != COL_NEG) {
-	    lvl.tutorial_dialog = "you need to press enter or space to make your piece a clean-up piece.";
+	    lvl.tutorial_dialog = "you need to press enter or space to make your piece a gas piece.";
 	} else {
 	    var offsets = piece.get_offsets(), shouldwork = false;
 	    for (var i in offsets) {
@@ -1190,7 +1246,7 @@ Game.prototype.tutorial2 = function () {
 	    if (shouldwork) {
 		this.startfall();
 	    } else {
-		lvl.tutorial_dialog = "clean-up pieces land on holes but pass through normal star food. place the piece above the hole to clear your way.";
+		lvl.tutorial_dialog = "gas pieces land on gas pockets but pass through normal star food. place the piece above the hole to clear your way.";
 	    }
 	}
     }

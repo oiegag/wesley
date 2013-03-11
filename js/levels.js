@@ -64,7 +64,7 @@ var STYLES = {
 	grid:'#aaa',
     },
     bigman:{
-	sky:'#fc9',
+	sky:'#9985bd',
 	sunfill: '#fa0',
 	moonfill: '#eca',
 	outer:'#ffd800',
@@ -198,7 +198,7 @@ var SETTINGS = {
 	sun:'skull',
 	corona_nm:'rays_sun',
 	fire_nm:'fire',
-	skip:0,
+	skip:1,
 	timer:80
     },
 };
@@ -218,7 +218,7 @@ Level.prototype.preload = function () {
 	this.newsnds = [];
     }
     this.newpats = this.newpats.concat([['rays_sun',[5,1],[0,1,2,3,4,3,2,1]],['fire',[1,1]]]);
-    this.newsnds = this.newsnds.concat([['fallen'],['cfallen'],['feast'],['wheelin'],['moondeath'],['shakeout'],['winbing']]);
+    this.newsnds = this.newsnds.concat([['fallen'],['cfallen'],['feast'],['wheelin'],['moondeath'],['shakeout'],['winbing'],['thud'],['ambient']]);
 
     this.reset_style();
     this.reset_settings();
@@ -282,6 +282,11 @@ Level.prototype.startloading = function (these,constructor,where) {
     }
     return loaded;
 };
+Level.prototype.blink_seq = function (who) {
+    who.seq = repeatN(0,100).concat([0,0,1,2,3,3,2,0]);
+    who.anispeed = 50;
+};
+
 Level.prototype.moons_hook = function () {
     ctx.lineWidth = 1.25;
     ctx.fillStyle = lvl.moonfill;
@@ -726,15 +731,15 @@ Level.prototype.fade_in = function () {
     var now = Date.now();
     this.background(false);
     this.draw_scene();
-    if ((now - this.began) < 500) {
+    if ((now - this.began) < 1000) {
 	ctx.fillStyle = '#000';
 	ctx.globalAlpha = 1;
 	ctx.fillRect(0,0,cvs.width,cvs.height);
 	ctx.globalAlpha = 1;
 	return true;
-    } else if ((now - this.began) < 650) {
+    } else if ((now - this.began) < 1150) {
 	ctx.fillStyle = '#000';
-	var delay = (now - this.began - 500);
+	var delay = (now - this.began - 1000);
 	ctx.globalAlpha = 1 - delay/150;
 	ctx.fillRect(0,0,cvs.width,cvs.height);
 	ctx.globalAlpha = 1;
@@ -830,7 +835,7 @@ SleepingBaby.prototype.postload = function () {
     this.bg = imgs.stars;
     this.bg.seq = [0,1,0,2];
     this.bg.anispeed = 200;
-    snds.sleeping.play();
+    game.enqueue(snds.sleeping);
 };
 SleepingBaby.prototype.render_play = function (arg1) {
     Level.prototype.render_play.call(this,arg1);
@@ -840,6 +845,7 @@ SleepingBaby.prototype.nextpiece = function () {
     return 4; // cup piece
 };
 SleepingBaby.prototype.initialstate = [
+//    "cccccccccccccc.ccccccc",
     ".c.ccccccccccccccccccc",
     "....................c.",
 ];
@@ -861,8 +867,12 @@ makeScene(SleepingBaby.prototype.dialogs,
 		  narrate:"you consider the star baby a while. it's strange you've never thought about it before. [all right moon. how do i wake a star baby?]",
 	      },
 	      {
-		  moon:"stars need food to live. surround a star by a ring of food, and it will burn. feed it enough, and it will shine.",
-		  narrate:"[where do you get this food?] you ask."
+		  moon:"stars need food to live. if you surround a star by a ring of food, like this ..."
+		  // ACTION HERE OF PLACING PIECE
+	      },
+	      {
+		  moon:"... the star will eat it. if you feed it enough, it will wake up and shine.",
+		  narrate:"[whoa, these puzzle pieces are star food?]"
 	      }
 	  ],true);
 SleepingBaby.prototype.enter_tutorial = function (update) {
@@ -873,8 +883,8 @@ SleepingBaby.prototype.enter_tutorial = function (update) {
     this.background(false);
     this.narrate("");
     this.draw_scene();
-    this.moon_dialog("have you ever wondered about those puzzle pieces you like to count? \n star food!");
-    this.tutorial_dialog = "try feeding him this one. \n \n use + to rotate the piece. use < and > to spin the star. when you like your position, press = to launch.";
+    this.moon_dialog("yes! here, try feeding him this one to fill those two holes at the surface.");
+    this.tutorial_dialog = "use + to rotate the piece. use < and > to spin the star. when you like your position, press = to launch.";
     this.dialog_animation = function () {
 	game.gotolater(game.tutorial1);
 	delete this.dialog_animation;
@@ -927,6 +937,27 @@ SleepingBabyNeg.prototype.render_play = function (arg1) {
     Level.prototype.render_play.call(this,arg1);
     this.moon_dialog(this.tutorial_dialog);
 };
+SleepingBabyNeg.prototype.demo_cleanup = function (update) {
+    if (update) {
+	this.dialog = this.dialogs[1];
+	return true;
+    }
+    this.background(false);
+    this.narrate("");
+    this.draw_scene();
+    this.moon_dialog("good, but look at this. we created a hole in the bottom ring that is covered with star food. gases build up in these holes and prevent the star from eating.");
+    imgs.arrow.render();
+    delete this.dialog_animation;
+    return true;
+};
+SleepingBabyNeg.prototype.dialogs = [SleepingBabyNeg.prototype.demo_cleanup];
+makeScene(SleepingBabyNeg.prototype.dialogs,
+	  [
+	      {
+		  moon: "since stars can only eat rings at their surface, i will use a gas piece to uncover the hole so we can fill it with food.",
+		  // drop in a piece
+	      }
+	  ],true);
 SleepingBabyNeg.prototype.enter_tutorial = function (update) {
     if (update) {
 	delete this.dialog;
@@ -935,9 +966,8 @@ SleepingBabyNeg.prototype.enter_tutorial = function (update) {
     this.background(false);
     this.narrate("");
     this.draw_scene();
-    this.moon_dialog("good, but look at this. you created a hole in the bottom ring that is covered with star food. stars can only eat rings at their surfaces, so it will not be useful to  go on until you clear that hole.");
-    imgs.arrow.render();
-    this.tutorial_dialog = "use a clean-up piece to fix your mess.\n \n press enter or space to switch between normal pieces and clean-up pieces, then open up that hole.";
+    this.moon_dialog("gas pieces pass through normal star food, but land on top of other gas pieces. when nothing covers a column of gas, it will disperse and the hole can be filled with food.\n \n here, try using a gas piece to open up that other hole at the surface.");
+    this.tutorial_dialog = "press enter or space to switch between normal pieces and gas pieces, then land the piece on top of the trapped gas to open up a hole.";
     this.dialog_animation = function () {
 	game.gotolater(game.tutorial2);
 	delete this.dialog_animation;
@@ -945,8 +975,7 @@ SleepingBabyNeg.prototype.enter_tutorial = function (update) {
     };
     return true;
 };
-
-SleepingBabyNeg.prototype.dialogs = [SleepingBabyNeg.prototype.enter_tutorial];
+SleepingBabyNeg.prototype.dialogs.push(SleepingBabyNeg.prototype.enter_tutorial);
 
 
 
@@ -980,8 +1009,12 @@ WakingBaby.prototype.dialogs = [];
 makeScene(WakingBaby.prototype.dialogs,
 	  [
 	      {
-		  moon: "there you go. i think if you feed this baby three rings it should wake up. then it will be bright and warm."
+		  moon: "there you go. gas pieces pass through normal star food and act sort of like an eraser. they are useful if you find yourself stuck with some tricky food shapes."
 	      },
+	      {
+		  moon: "it seems like you have the hang of this. try feeding it three more rings. if you get stuck, do not forget gas pieces. i am going to take a nap.",
+		  action: 'moon_set'
+	      }
 	  ],false);
 
 
@@ -1006,7 +1039,7 @@ WokenBaby.prototype.nextpiece = function () {
     var pieces = [this.pdict.straight,this.pdict.t,this.pdict.t];
     return pieces[this.piececount++]; // cup piece
 };
-WokenBaby.prototype.gameovertext = "when you look around, moon is nowhere to be found. you spend eternity floating around a dead baby star, cold, and filled with remorse. try again.";
+WokenBaby.prototype.gameovertext = "when you look around, moon is nowhere to be found. you spend eternity floating around a dead baby star. you are cold, lonely, and filled with remorse. try again.";
 WokenBaby.prototype.postload = function () {
     Level.prototype.postload.call(this);
     imgs[this.sun].anispeed = 40;
@@ -1016,26 +1049,25 @@ WokenBaby.prototype.postload = function () {
     this.bg.fillhook = function () {
 	imgs.sky.render();
     }
-    this.inscene = [imgs[this.sun],imgs.moon];
-    snds.wakinbabies.play();
+    this.inscene = [imgs[this.sun]];
+    game.enqueue(snds.wakinbabies);
 };
 WokenBaby.prototype.dialogs = [];
 makeScene(WokenBaby.prototype.dialogs,
 	  [
 	      {
 		  narrate: "as the third ring is absorbed into the baby head, you are flushed with anticipation. what palette changes await you?",
-		  action: 'dialog_palette_change',
+		  action: ['moon_rise','dialog_palette_change'],
 		  args: 'babyface',
 		  hook: function () {
 		      imgs[this.sun].seq = [0,1,2,3,4,5,6,7,8,9,10].concat(repeatN(10,80)).concat([10,9,8,7,6,5,4,3,2,1]);
 		  }
 	      },
 	      {
-		  moon: "this is called a bright baby.\n \n i am going to take a nap. i will talk to you tomorrow.",
-		  action: 'moon_set'
+		  moon: "wow, this is a bright baby.",
 	      },
 	      {
-		  narrate: "you stare up at this baby and wonder what will happen to it now. \n \n you look down at your puzzle pieces, but you only have three left: too few to count.  no matter. you decide to nap in the warm sunlight, too.",
+		  narrate: "you stare up at this baby and wonder what will happen to it now. \n \n you look down at your puzzle pieces, but you only have three left: too few to count.  no matter. you decide to nap in the warm sunlight.",
 		  action: 'fade_out',
 		  args: function () {
 		      this.bg.alpha = 0.25;
@@ -1051,7 +1083,10 @@ makeScene(WokenBaby.prototype.dialogs,
 		  }
 	      },
 	      {
-		  moon: "you! you! wake up! i forgot you must keep feeding these things or they die. it picked up some food floating by, but you need to use your last three pieces to fill the rings. \n i hope you figure this out, i do not want to be caught with another dead baby.",
+		  moon: "you! wake up! i forgot you must keep feeding these things or they die. it picked up some food floating by, but not enough to feed itself. use your last three pieces to fill the rings."
+	      },
+	      {
+		  moon:  "your pieces are conveniently displayed on the ribbon to your right.\n \n i hope you figure this out, i do not want to be caught with another dead star baby.",
 		  action: 'moon_set'
 	      }
 	  ],false);
@@ -1089,7 +1124,7 @@ BigBaby.prototype.dialogs = [];
 makeScene(BigBaby.prototype.dialogs,
 	  [
 	      {
-		  narrate: "that baby seems to be fed, but you miss your puzzle pieces.",
+		  narrate: "the baby seems to be satisfied, but you miss your puzzle pieces.",
 		  action: 'moon_rise'
 	      },
 	      {
@@ -1097,10 +1132,10 @@ makeScene(BigBaby.prototype.dialogs,
 		  action: 'moon_set'
 	      },
 	      {
-		  narrate: "instead of your usual afternoon habit of shivering and singing songs with moon, you float out into the void in search of puzzle pieces for the baby."
+		  narrate: "instead of your usual afternoon habit of shivering and singing songs with moon, you float out into the void in search of food for the baby."
 	      },
 	      {
-		  narrate: "as you work, you grow increasingly irritated. moon said you'd be warm, and he was right, but at what cost? he didn't say anything about constantly feeding the thing. \n \n when night comes, you are tired, so you sleep.",
+		  narrate: "as you work, you grow increasingly irritated. moon said you'd be warm, and he was right, but he didn't say you'd have to constantly feed the thing. \n \n when night comes, you are tired, so you sleep.",
 		  action: 'fade_out',
 		  args: function () {
 		      this.settingtype = 'bigbaby';
@@ -1127,7 +1162,7 @@ makeScene(BigBaby.prototype.dialogs,
 		  narrate: "[that sounds more like it.]"
 	      },
 	      {
-		  moon: "why don't you feed it now? you must keep it well-fed if you want it to grow up.\n \n there is a timer at your top right that tells you how long you have before it starves. the top left tells you how many more rings it needs.",
+		  moon: "feed it now. you must keep it well-fed if you want it to grow up.\n \n there is a timer at your top right that tells you how long you have before it starves. the top left tells you how many more rings it needs to keep growing.",
 		  action: 'moon_set'
 	      }
 	  ], false);
@@ -1179,7 +1214,7 @@ makeScene(MoonSucks.prototype.dialogs,
 		  narrate: "[you feed him for a little while and i'll go collect food,] you tell moon.",
 	      },
 	      {
-		  moon: "sounds good.",
+		  moon: "i suppose i could do that.",
 		  action: ['moon_set','sun_set']
 	      },
 	      {
@@ -1195,7 +1230,7 @@ makeScene(MoonSucks.prototype.dialogs,
 		  }
 	      },
 	      {
-		  moon: "hey you! my feeding skills are not what they used to be. i have tangled it up, but i am out of pieces. it is getting cranky. use what you have to feed it.",
+		  moon: "hey! you! my feeding skills are not what they used to be. i made it gassy, but i am out of pieces. it is getting cranky. use whatever you have to feed it.",
 		  action: ['moon_set','sun_rise']
 	      }
 	  ], false);;
@@ -1223,7 +1258,7 @@ AnotherDay.prototype.postload = function () {
     imgs[this.sun].anispeed = 40;
     this.bg = imgs.sky;
     this.inscene = [imgs[this.sun]];
-    snds.wakinbabies.play();
+    game.enqueue(snds.wakinbabies);
 };
 AnotherDay.prototype.dialogs = [];
 makeScene(AnotherDay.prototype.dialogs,
@@ -1233,17 +1268,17 @@ makeScene(AnotherDay.prototype.dialogs,
 		  action: 'moon_rise'
 	      },
 	      {
-		  moon: "that was close. i don't think i could handle hearing another crying baby. the sound makes me want to throw up."
+		  moon: "that was close. maybe you should do all the feeding from now on."
 	      },
 	      {
-		  narrate: "annoyed by moon's incompetent feeding, you leave to collect more puzzle pieces for tomorrow.\n \n when night comes, you are tired, so you sleep.",
+		  narrate: "annoyed by moon's incompetence, you go off in search of more puzzle pieces for tomorrow.\n \n when night comes, you are tired, so you sleep.",
 		  action: 'fade_out',
 		  args: function () {
 		      this.inscene = removeAll(this.inscene, imgs.moon);
 		  }
 	      },
 	      {
-		  narrate: "when you wake, moon is still asleep. it's about time to start feeding. you think five rings should work."
+		  narrate: "when you wake the next day, moon is still asleep. [five rings should keep it happy,] you say to yourself."
 	      }
 	  ], false);
 
@@ -1277,7 +1312,7 @@ AnotherPuzzle.prototype.dialogs = [];
 makeScene(AnotherPuzzle.prototype.dialogs,
 	  [
 	      {
-		  narrate: "you think that's enough for now. you go off to collect some more pieces...",
+		  narrate: "thinking that's enough for now, you go off to collect some more pieces...",
 		  action: 'sun_set',
 		  hook: function () {
 		      board.load_initial([
@@ -1288,11 +1323,11 @@ makeScene(AnotherPuzzle.prototype.dialogs,
 		  }
 	      },
 	      {
-		  narrate: "...but detecting a pattern to your life, you turn back early to see if there's some sort of puzzle to complete.",
+		  narrate: "...but detecting a pattern, you head back early to see if there's some sort of puzzle to complete.",
 		  action: 'sun_rise',
 	      },
 	      {
-		  narrate: "when you return, the star baby has collected some debris. you must untangle that baby using only a few pieces and your prowess."
+		  narrate: "sure enough, when you return, the star baby has collected some debris. untangle that baby using only your limited collection of pieces and your prowess."
 	      }
 	  ], false);
 
@@ -1301,7 +1336,7 @@ var StarMan = function (initialstate) {
     if (initialstate) {
 	this.initialstate = initialstate;
     }
-    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['man',[cvs.ox,cvs.oy]],['bigbaby',[cvs.ox,cvs.oy],[1,11]]];
+    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['man',[cvs.ox,cvs.oy],[1,4]],['bigbaby',[cvs.ox,cvs.oy],[1,11]]];
     this.newsnds = [['mansong']];
     this.styletype = 'bigbaby';
     this.settingtype = 'bigbaby';
@@ -1313,7 +1348,8 @@ StarMan.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.sky;
     this.inscene.push(imgs[this.sun]);
-    snds.mansong.play();
+    this.blink_seq(imgs.man);
+    game.enqueue(snds.mansong);
 };
 StarMan.prototype.dialogs = [];
 makeScene(StarMan.prototype.dialogs,
@@ -1346,23 +1382,23 @@ makeScene(StarMan.prototype.dialogs,
 	      },
 	      {
 		  sun: "please, call me wesley.",
-		  narrate: "[wesley, i've been feeding you for a while now. moon said that once you were a grown up, you could fetch your own food.]"
+		  narrate: "[wesley, moon said that once you were a grown up, you could fetch your own food.]"
 	      },
 	      {
-		  sun: "well, let's talk about this. i have been providing you with the service of keeping you warm. have i not?",
-		  narrate: "[well, yeah.]"
+		  sun: "hmm, well, i could indeed. but would it be fair? i have been providing you with the service of keeping you warm. have i not?",
+		  narrate: "[well, yes.]"
 	      },
 	      {
-		  sun: "so, really, it would only be fair that you repay me in some way for this service. would it not?",
-		  narrate: "[yeah, i guess that would be fair...]"
+		  sun: "so, if you have your way, i would fetch my food and provide you with warmth, and you would do nothing. correct?",
+		  narrate: "[yeah, i guess that does seem unfair...]"
 	      },
 	      {
-		  sun: "all right, so how about this: each day, you will feed me, and in return, i will shine on you.\n \n that sounds reasonable. does it not?",
-		  narrate: "at least for the purpose of moving the story along, you agree that it seems reasonable. after all, wesley seems to be informed about these things.\n",
+		  sun: "all right, so how about this: each day, you will feed me, and in return, i will shine on you and keep you warm.\n \n that sounds reasonable. does it not?",
+		  narrate: "it hadn't actually occurred to you that wesley had to do anything at all to shine and keep you warm. it does seem like wesley would know what's involved better than you do, though. you agree to the terms.",
 		  action: 'moon_set'
 	      },
 	      {
-		  narrate: "you begin feeding him the food you collected yesterday. feeding a star baby seemed almost natural, but there's something perverse about feeding this star man."
+		  narrate: "you begin feeding him the food you collected yesterday. feeding a star baby seemed almost natural, but there's something strange about feeding this star man."
 	      }
 	  ],false);
 
@@ -1373,7 +1409,7 @@ var WesleyPuzzle = function (initialstate) {
     if (initialstate) {
 	this.initialstate = initialstate;
     }
-    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['man',[cvs.ox,cvs.oy]]];
+    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['man',[cvs.ox,cvs.oy],[1,4]]];
     this.styletype = 'manface';
     this.settingtype = 'man';
     this.preload();
@@ -1390,6 +1426,7 @@ WesleyPuzzle.prototype.nextpiece = function () {
 WesleyPuzzle.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.sky;
+    this.blink_seq(imgs.man);
     this.inscene.push(imgs[this.sun]);
 };
 WesleyPuzzle.prototype.dialogs = [];
@@ -1412,7 +1449,7 @@ makeScene(WesleyPuzzle.prototype.dialogs,
 		  action: 'moon_rise',
 	      },
 	      {
-		  moon: "you! you! help! wesley was trying to eat too much star food at once, and he's tangled himself inside! you've got to help him!",
+		  moon: "you! wesley was trying to eat too much star food at once, and he has tangled himself inside! you have to help him!",
 		  action: 'moon_set'
 	      },
 	      {
@@ -1428,7 +1465,7 @@ var BigMan = function (initialstate) {
     if (initialstate) {
 	this.initialstate = initialstate;
     }
-    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['man',[cvs.ox,cvs.oy]],['bigman',[cvs.ox,cvs.oy]]];
+    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['man',[cvs.ox,cvs.oy],[1,4]],['bigman',[cvs.ox,cvs.oy],[1,4]]];
     this.newsnds = [['mansong']];
     this.styletype = 'manface';
     this.settingtype = 'man';
@@ -1440,13 +1477,15 @@ BigMan.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.sky;
     this.inscene.push(imgs[this.sun]);
-    snds.mansong.play();
+    this.blink_seq(imgs.bigman);
+    game.enqueue(snds.mansong);
 };
 BigMan.prototype.dialogs = [];
 makeScene(BigMan.prototype.dialogs,
 	  [
 	      {
-		  narrate: "when wesley is untangled, he doesn't say thank you but just keeps giving you that irritating smile.\n \n feeling uncomfortable, you go away to fetch the rest of your puzzle pieces.\n \n when night comes, you are tired, so you sleep.",
+		  sun: "light and warmth output is projected to take a short-term dip as we approach a local minimum in feeding efficiency, but with further manual stimulus, we may avoid any reduction to growth rate.",
+		  narrate: "it doesn't sound like thank you, but it might mean he's sorry he tried to eat too much. you aren't sure.\n \n you go off to fetch the rest of your puzzle pieces.\n \n when night comes, you are tired, so you sleep.",
 		  action: 'fade_out',
 		  args: function () {
 		      this.settingtype = 'bigman';
@@ -1458,22 +1497,19 @@ makeScene(BigMan.prototype.dialogs,
 		      this.styletype = 'bigman';
 		      this.reset_style();
 		      this.add_fill_hooks();
-		      this.inscene = [];
+		      this.inscene = [imgs[this.sun]];
 		  }
 	      },
 	      {
-		  narrate: "when you wake the next day, you find moon sleeping near by. you wake him.",
-		  action: 'moon_rise'
+		  narrate: "when you wake the next day, you find wesley talking to himself ...",
 	      },
 	      {
-		  narrate: "[moon, it seems to me that i'm not the only one getting the benefit of wesley's warmth. isn't there some way to make things more fair?]\n \n moon is quiet a moment and looks thoughtful, like moons do.",
+		  sun: "wesley: lighting the way to the future...\n \n wesley: what do you want to see today?\n \n wesley: a hard day's work makes the warmth taste better...",
+		  narrate: "[wesley, i think it's snack time.]"
 	      },
 	      {
-		  moon: "there is a way... you could feed wesley and i could collect star pieces. then we could both be warm and the work is split evenly."
-	      },
-	      {
-		  narrate: "you agree. you go to feed wesley with the pieces you collected yesterday and moon goes to collect more for tomorrow.",
-		  action: ['moon_set','sun_rise']
+		  sun: "ah, yes. we were thinking for optimal growth, moon should fetch pieces today while you feed.",
+		  narrate: "thinking back to moon's feeding job, you aren't so sure, but it does sound like less work for you. you agree: moon will fetch today's pieces and you will just work on feeding wesley."
 	      }
 	  ],false);
 
@@ -1483,12 +1519,12 @@ var BigManPuzzle = function (initialstate) {
     if (initialstate) {
 	this.initialstate = initialstate;
     }
-    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['bigman',[cvs.ox,cvs.oy]]];
+    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['bigman',[cvs.ox,cvs.oy],[1,4]]];
     this.styletype = 'bigman';
     this.settingtype = 'bigman';
     this.preload();
     this.dialog = this.dialogs[0];
-    this.lines = 5;
+    this.lines = 3;
     this.piececount = 0;
     this.timer = 4*60;
 }
@@ -1497,6 +1533,7 @@ BigManPuzzle.prototype.gameovertext = "you need to feed wesley clean-up rings. t
 BigManPuzzle.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.sky;
+    this.blink_seq(imgs.bigman);
     this.inscene.push(imgs[this.sun]);
 };
 BigManPuzzle.prototype.feast = function () {
@@ -1531,7 +1568,7 @@ var Giant = function (initialstate) {
     if (initialstate) {
 	this.initialstate = initialstate;
     }
-    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['bigman',[cvs.ox,cvs.oy]],['giant',[cvs.ox,cvs.oy]]];
+    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['bigman',[cvs.ox,cvs.oy],[1,4]],['giant',[cvs.ox,cvs.oy]]];
     this.newsnds = [['giant']];
     this.styletype = 'bigman';
     this.settingtype = 'bigman';
@@ -1546,7 +1583,8 @@ Giant.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.sky;
     this.inscene.push(imgs[this.sun]);
-    snds.giant.play();
+    this.blink_seq(imgs.bigman);
+    game.enqueue(snds.giant);
 };
 Giant.prototype.dialogs = [];
 makeScene(Giant.prototype.dialogs,
@@ -1703,7 +1741,7 @@ TriplePuzzle.prototype.postload = function () {
     Level.prototype.postload.call(this);
     this.bg = imgs.sky;
     this.inscene.push(imgs[this.sun]);
-    snds.giant.play();
+    game.enqueue(snds.giant);
 };
 TriplePuzzle.prototype.feast = function () {
     var ret = Level.prototype.feast();
@@ -1833,7 +1871,7 @@ Waiting.prototype.postload = function () {
     this.bg.seq = [0,1,0,2];
     this.bg.anispeed = 200;
     this.inscene.push(imgs[this.sun]);
-    snds.sleeping.play();
+    game.enqueue(snds.sleeping);
 };
 Waiting.prototype.dialogs = [];
 makeScene(Waiting.prototype.dialogs,
