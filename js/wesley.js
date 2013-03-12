@@ -704,6 +704,8 @@ Game.prototype.load_before_levels = function () {
     this.began = Date.now();
     imgs.logo.ox = cvs.width/2;
     imgs.logo.oy = cvs.height/2;
+    imgs.loading.ox = cvs.width/2;
+    imgs.loading.oy = 0.5*cvs.height;
     this.gotolater(this.logo);
 };
 Game.prototype.logo = function () {
@@ -980,9 +982,7 @@ Game.prototype.callback = function () {
     setTimeout(game.callback,FRIENDLY);
 };
 Game.prototype.loading = function () {
-    ctx.fillStyle = MENUBG;
-    ctx.fillRect(cvs.width/2-60,cvs.height/2,120,25);
-    this.textCenter(['loading'], 25, cvs.width/2, cvs.height/2-3, MENUFILL);
+    imgs.loading.render();
     if(lvl.load()) {
 	lvl.postload();
 	input.reset();
@@ -1113,6 +1113,7 @@ Game.prototype.fall = function () {
 	lvl.render_play(false);
 	if (this.jettison_me.length == 0) {
 	    this.end_of_fall();
+	    this.returnlater();
 	} else {
 	    this.last_update = Date.now();
 	    this.jetsetter(0);
@@ -1146,6 +1147,7 @@ Game.prototype.jettison_animate = function () {
     } else {
 	this.end_of_fall();
 	lvl.render_play(false);
+	this.returnlater();
     }
 };
 Game.prototype.end_of_fall = function () {
@@ -1155,7 +1157,6 @@ Game.prototype.end_of_fall = function () {
 	snds.feast.play();
     }
     piece = new ActivePiece(lvl.color,lvl.newpiece());
-    this.returnlater();
 };
 Game.prototype.gameover = function () {
     lvl.narrate(lvl.gameovertext);
@@ -1246,7 +1247,7 @@ Game.prototype.tutorial2 = function () {
 	    if (shouldwork) {
 		this.startfall();
 	    } else {
-		lvl.tutorial_dialog = "gas pieces land on gas pockets but pass through normal star food. place the piece above the hole to clear your way.";
+		lvl.tutorial_dialog = "gas pieces land on gas pockets but pass through normal star food. place the piece above the gas pocket to clear a hole.";
 	    }
 	}
     }
@@ -1267,7 +1268,7 @@ Game.prototype.tutorial2 = function () {
 };
 
 var globalInit = function () {
-    imgs = {cloud1:new Sprite('cloud1'),cloud2:new Sprite('cloud2'),logo:new Sprite('logo')};
+    imgs = {cloud1:new Sprite('cloud1'),cloud2:new Sprite('cloud2'),logo:new Sprite('logo'),loading:new Sprite('loading')};
     pats = {};
     snds = {};
 };
