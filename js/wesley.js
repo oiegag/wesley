@@ -683,6 +683,7 @@ var Game = function () {
     this.skip_dialog = false;
     this.always_skip_dialog = false; // set skip dialog back to this value on entering a level
     this.music = true;
+    this.always_music = true;
     this.sfx = true;
     this.always_sfx = true;
     this.invert = true;
@@ -704,8 +705,6 @@ Game.prototype.load_before_levels = function () {
     this.began = Date.now();
     imgs.logo.ox = cvs.width/2;
     imgs.logo.oy = cvs.height/2;
-    imgs.loading.ox = cvs.width/2;
-    imgs.loading.oy = 0.5*cvs.height;
     this.gotolater(this.logo);
 };
 Game.prototype.logo = function () {
@@ -760,6 +759,11 @@ Game.prototype.do_clouds = function () {
 Game.prototype.nextlevel = function () {
     this.lvl++;
     if (this.lvl == this.lvls.length) {
+	game.music = false;
+	this.soundtrack[0].end();
+	this.soundtrack = [];
+	this.lvl = 16;
+	lvl = new this.lvls[this.lvl]();
 	this.gotolater(this.transition_to_credits);
 	input.reset();
 	this.began = Date.now();
@@ -912,6 +916,7 @@ Game.prototype.mainmenu = function () {
 Game.prototype.apply_options = function () {
     this.skip_dialog = this.always_skip_dialog;
     this.sfx = this.always_sfx;
+    this.music = this.always_music;
     if (this.invert) {
 	KEY.rt = 39;
 	KEY.lt = 37;
@@ -922,7 +927,7 @@ Game.prototype.apply_options = function () {
 };
 Game.prototype.options = function () {
     var booltotext = {true:'on',false:'off'};
-    var values = [booltotext[!this.always_skip_dialog],booltotext[this.always_sfx],booltotext[this.music],booltotext[this.invert]];
+    var values = [booltotext[!this.always_skip_dialog],booltotext[this.always_sfx],booltotext[this.always_music],booltotext[this.invert]];
     var highlightables = values.concat(['return to menu']);
     var locations = [[550,0],[550,30],[550,60],[550,90],[400,200]], starty = 280;
 
@@ -949,7 +954,7 @@ Game.prototype.options = function () {
 	} else if (this.selected == 1) { // sfx
 	    this.always_sfx = ! this.always_sfx;
 	} else if (this.selected == 2) { // music
-	    this.music = ! this.music;
+	    this.always_music = ! this.always_music;
 	} else if (this.selected == 3) { // invert
 	    this.invert = ! this.invert;
 	} else if (this.selected == 4) { // return
@@ -988,6 +993,7 @@ Game.prototype.loading = function () {
 	input.reset();
 	this.cloud.update = Date.now();
 	lvl.dialog(false);
+	this.handle_soundtrack();
 	this.gotolater(this.dialog);
     }
     if (this.skip_dialog) {
@@ -1023,6 +1029,7 @@ Game.prototype.dialog_animation = function () {
 	if (! lvl.dialog(true)) {
 	    this.skip_dialog = this.always_skip_dialog;
 	    this.sfx = this.always_sfx;
+	    this.music = this.always_music;
 	    lvl.total_lines = lvl.lines;
 	    input.reset();
 	    this.gotolater(this.waitcmd);
@@ -1069,20 +1076,39 @@ Game.prototype.rotate = function () {
     lvl.animate();
     lvl.interp_palette('dying',(lvl.timer-30)*1000);
 };
+Game.prototype.handle_soundtrack = function () {
+    // normal soundtrack will be placed at specific locations in the dialog, but big chunks of the game just
+    // play ambient noise. if you restart in one of these sections, this function will get you started on an
+    // ambient loop.
+    // the strings aren't really used they just tell me where i am
+    var leveldict = ['sleeping',undefined,undefined, // tutorial and sleeping baby
+		    'wakinbabies',undefined,undefined,'wakinbabies',undefined, // big baby
+		    'mansong',undefined,'mansong',undefined,
+		    'giant',undefined,'giant',undefined,'sleeping'];
+
+    if (game.soundtrack.length == 0) { // nothing playing
+	if (leveldict[this.lvl] == undefined) {
+	    game.enqueue(snds.ambient);
+	}
+    }
+};
 Game.prototype.enqueue = function(soundtrack) {
+    if (! game.music) {
+	return;
+    }
     playnext = function () {
-	game.soundtrack.pop();
+	game.soundtrack = game.soundtrack.slice(1);
 	if (game.soundtrack.length == 0) {
 	    game.soundtrack = [snds.ambient];
 	}
-	var newbie = game.soundtrack[game.soundtrack.length-1];
+	var newbie = game.soundtrack[0];
 	newbie.play();
 	newbie.set_callback(playnext);
     };
     this.soundtrack.push(soundtrack);
     if (this.soundtrack.length == 1) {
 	soundtrack.play();
-	this.soundtrack[this.soundtrack.length-1].set_callback(playnext);
+	this.soundtrack[0].set_callback(playnext);
     }
 };
 
@@ -1141,6 +1167,7 @@ Game.prototype.jetsetter = function (tfrac) {
 };
 Game.prototype.jettison_animate = function () {
     var now = Date.now(), tfrac = (now - this.last_update)/250;
+    lvl.animate();
     lvl.render_play(false);
     if (tfrac < 1) {
 	this.jetsetter(tfrac);
@@ -1164,6 +1191,7 @@ Game.prototype.gameover = function () {
 	lvl = new this.lvls[this.lvl]();
 	this.skip_dialog = true;
 	this.sfx = false;
+	this.music = false;
 	globalInit();
 	input.reset();
 	this.gotolater(this.loading);
@@ -1269,6 +1297,8 @@ Game.prototype.tutorial2 = function () {
 
 var globalInit = function () {
     imgs = {cloud1:new Sprite('cloud1'),cloud2:new Sprite('cloud2'),logo:new Sprite('logo'),loading:new Sprite('loading')};
+    imgs.loading.ox = cvs.width/2;
+    imgs.loading.oy = 0.1*cvs.height;
     pats = {};
     snds = {};
 };

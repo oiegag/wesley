@@ -77,9 +77,7 @@ SoundFile.prototype.end = function () {
     if (! this.playing || this.error) {
 	return;
     }
-    this.file.pause();
-    this.file.currentTime = 0;
-    this.playing = false;
+    this.file.currentTime = this.file.duration;
 };
 SoundFile.prototype.do_pause = function () {
     if (! this.playing || this.error) {
