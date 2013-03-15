@@ -1912,6 +1912,7 @@ var CleanupPuzzle = function (initialstate) {
     this.settingtype = 'biggiant';
     this.preload();
     this.dialog = this.dialogs[0];
+    this.lines = 1/0;
 }
 CleanupPuzzle.prototype = new Level();
 CleanupPuzzle.prototype.shakeout = function () {
@@ -1944,19 +1945,16 @@ CleanupPuzzle.prototype.shakenbake = function (changescene) {
     ctx.fillRect(0,0,cvs.width,cvs.height);
     ctx.globalAlpha = 1;
 
-
-    if (sfrac > 1) {
-	sfrac = 1;
-    }
-
     imgs[this.sun].ox = cvs.ox + gaussian()*100*sfrac;
     imgs[this.sun].oy = cvs.oy + gaussian()*100*sfrac;
 
-    if (tfrac > 1) {
+    if (tfrac >= 1) {
 	changescene.call(this);
 	delete this.shakeout_sound;
+	return false;
+    } else {
+	return true;
     }
-    return (tfrac < 1);
 };
 CleanupPuzzle.prototype.gameovertext = "you die of exposure to toxic fumes. try the level again.";
 CleanupPuzzle.prototype.wincondition = function () {
@@ -2014,7 +2012,8 @@ makeScene(CleanupPuzzle.prototype.dialogs,
 
 // waiting
 var Waiting = function () {
-    this.newimgs = [['stars',[cvs.width/2,cvs.height/2],[1,3]],['skull',[cvs.ox, cvs.oy]]];
+    this.newimgs = [['stars',[cvs.width/2,cvs.height/2],[1,3]],['skull',[cvs.ox, cvs.oy]],['theend',[cvs.width/2,cvs.height/2]]];
+    this.newpats = [['eventhorizon']];
     this.newsnds = [['sleeping','music']];
     this.styletype = 'skull_nontoxic';
     this.settingtype = 'skull';
@@ -2032,6 +2031,7 @@ Waiting.prototype.postload = function () {
     this.bg.anispeed = 200;
     this.inscene.push(imgs[this.sun]);
     game.enqueue(snds.sleeping);
+    pats.eventhorizon.makePattern();
 };
 Waiting.prototype.dialogs = [];
 makeScene(Waiting.prototype.dialogs,
@@ -2041,5 +2041,50 @@ makeScene(Waiting.prototype.dialogs,
 	      },
 	      {
 		  narrate: "finally, even your narrator leaves you alone with your dead star and your puzzle pieces to do as you wish."
+	      }
+	  ], false);
+
+// fiesta mode
+var Fiesta = function () {
+    this.newimgs = [['stars',[cvs.width/2,cvs.height/2],[1,3]],['skull',[cvs.ox, cvs.oy]],['theend',[cvs.width/2,cvs.height/2]]];
+    this.newpats = [['eventhorizon']];
+    this.newsnds = [['sleeping','music']];
+    this.styletype = 'skull_nontoxic';
+    this.settingtype = 'skull';
+    this.preload();
+    this.dialog = this.dialogs[0];
+    this.lines = 1/0;
+    this.timer = 120;
+}
+Fiesta.prototype = new Level();
+Fiesta.prototype.feast = function () {
+    var ret = Level.prototype.feast(), now = Date.now();
+    console.log(this.timer);
+    this.timer += 20*ret*ret*Math.exp(-(now - this.began)/(180*1000));
+    console.log(this.timer);
+    return ret;
+};
+Fiesta.prototype.wincondition = function () {
+    var now = Date.now();
+    if ((now - this.began)/1000 > this.timer) {
+	return true;
+    } else {
+	return false;
+    }
+};
+Fiesta.prototype.postload = function () {
+    Level.prototype.postload.call(this);
+    this.bg = imgs.stars;
+    this.bg.seq = [0,1,0,2];
+    this.bg.anispeed = 200;
+    this.inscene.push(imgs[this.sun]);
+    game.enqueue(snds.sleeping);
+    pats.eventhorizon.makePattern();
+};
+Fiesta.prototype.dialogs = [];
+makeScene(Fiesta.prototype.dialogs,
+	  [
+	      {
+		  narrate: "cuando todos es muerte: fiesta."
 	      }
 	  ], false);

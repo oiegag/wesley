@@ -77,8 +77,9 @@ var setCookie = function (name, value, days) {
 var getCookie = function (sought) {
     var cookies = document.cookie.split(';');
     for (var i = 0 ; i < cookies.length ; i++) {
-	var name = cookies[i].substr(0,cookies[i].indexOf('='));
-	var value = cookies[i].substr(cookies[i].indexOf('=')+1);
+	var line = cookies[i].replace(/ /gi,'');
+	var name = line.substr(0,line.indexOf('='));
+	var value = line.substr(line.indexOf('=')+1);
 	if (name == sought) {
 	    return value;
 	}
@@ -678,7 +679,7 @@ var Game = function () {
     this.selected = 0;
     this.lvls = [SleepingBaby,SleepingBabyNeg,WakingBaby,WokenBaby,BigBaby,MoonSucks,AnotherDay,AnotherPuzzle,
 		 StarMan,WesleyPuzzle,BigMan,BigManPuzzle,
-		 Giant,DoublePuzzle,TriplePuzzle,CleanupPuzzle,Waiting];
+		 Giant,DoublePuzzle,TriplePuzzle,CleanupPuzzle,Waiting,Fiesta];
     this.load_level();
     this.skip_dialog = false;
     this.always_skip_dialog = false; // set skip dialog back to this value on entering a level
@@ -722,6 +723,9 @@ Game.prototype.save_level = function () {
 Game.prototype.load_level = function () {
     var lvl = getCookie('level');
     if (lvl && parseInt(lvl)) {
+	if (lvl >= this.lvls.length) {
+	    lvl = 0;
+	}
 	this.lvl = lvl;
     } else {
 	this.lvl = 0;
@@ -758,11 +762,21 @@ Game.prototype.do_clouds = function () {
 };
 Game.prototype.nextlevel = function () {
     this.lvl++;
-    if (this.lvl == this.lvls.length) {
+    if (this.lvl >= this.lvls.length) {
+	var fiesta = getCookie('fiesta'), newfiesta = Math.round(lvl.timer);
+	
+	if (fiesta == undefined) {
+	    setCookie('fiesta',newfiesta.toString(),30);
+	} else {
+	    setCookie('fiesta',max(newfiesta,fiesta),30);
+	}
+	this.lvl = this.lvls.length-1;
+    }
+    if (this.lvl >= this.lvls.length-1) {
+	this.save_level();
 	game.music = false;
 	this.soundtrack[0].end();
 	this.soundtrack = [];
-	this.lvl = 16;
 	lvl = new this.lvls[this.lvl]();
 	this.gotolater(this.transition_to_credits);
 	input.reset();
@@ -806,8 +820,18 @@ Game.prototype.transition_to_credits = function () {
     board.draw_arc(2*tfrac,0,2*PI);
     ctx.fillStyle = '#000';
     ctx.fill();
+    ctx.fillStyle = pats.eventhorizon.pat;
+    ctx.save();
+    ctx.translate(board.ox,board.oy);
+    ctx.beginPath();
+    ctx.arc(0,0, tfrac*cvs.width, 0,2*PI);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.fill();
+    ctx.restore();
+    imgs.theend.render();
 
-    if (tfrac > 1) {
+    if (tfrac > 4) {
 	this.draw_credits();
 	input.reset();
 	this.gotolater(this.mainmenu);
@@ -869,9 +893,18 @@ Game.prototype.draw_credits = function () {
     this.textLeft(['strangy','kyster','corsica_s','ryding'],25,60,300,MENUFILL);
     this.textRight(['wind in the grass small town','henne beach waves and seagulls','toronto_chinatown','storm'],25,cvs.width-60,300,MENUFILL);
     this.textCenter(['thanks to the maintainers', 'of inkscape and fontforge'], 25, cvs.width/2, 450, MENUFILL);
+    this.textCenter(['press enter to return to the menu'],25,cvs.width/2,560,MENUFILL);
 };
 Game.prototype.mainmenu = function () {
     var selections = ['continue','new game','options','credits'];
+    if (this.lvl == this.lvls.length-1) {
+	var fiesta = getCookie('fiesta');
+	if (fiesta != undefined) {
+	    selections[0] = 'fiesta mode: ' + fiesta;
+	} else {
+	    selections[0] = 'fiesta mode';
+	}
+    }
 
     ctx.fillStyle = MENUBG;
     ctx.fillRect(0,0,cvs.width,cvs.height);
