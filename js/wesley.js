@@ -452,14 +452,18 @@ Board.prototype.draw_box = function (i,j,fill,tilt) {
 
     ctx.save();
     ctx.translate(this.ox,this.oy);
-    ctx.rotate(tilt);
+//    ctx.rotate(tilt);
+    var tj = this.t(j)+tilt;
+    var tj1 = this.t(j+1)+tilt;
+    var ro = this.r(i+1)*cvs.width/2;
+    var ri = this.r(i)*cvs.width/2;
     ctx.beginPath();
-    ctx.arc(0,0,this.r(i)*cvs.width/2,this.t(j),this.t(j+1));
-    ctx.lineTo(Math.round(this.r(i+1)*cvs.width/2*Math.cos(this.t(j+1))),
-	       Math.round(this.r(i+1)*cvs.width/2*Math.sin(this.t(j+1))));
-    ctx.arc(0,0,this.r(i+1)*cvs.width/2,(j+1)*this.dtheta,this.t(j), true);    
-    ctx.lineTo(Math.round(this.r(i)*cvs.width/2*Math.cos(this.t(j))),
-	       Math.round(this.r(i)*cvs.width/2*Math.sin(this.t(j))));
+    ctx.arc(0,0,ri,tj,tj1);
+    ctx.lineTo(Math.round(ro*Math.cos(tj1)),
+	       Math.round(ro*Math.sin(tj1)));
+    ctx.arc(0,0,ro,tj1,tj, true);    
+    ctx.lineTo(Math.round(ri*Math.cos(tj)),
+	       Math.round(ri*Math.sin(tj)));
     ctx.closePath();
     ctx.fill();
     ctx.stroke();
