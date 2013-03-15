@@ -383,14 +383,9 @@ Board.prototype.render = function (tilt) {
     }
     for (var i = 0 ; i < this.nrows ; i++) {
 	for (var j = 0 ; j < this.ncols ; j++) {
-	    if (board[i][j] == COL_COR) {
-		this.draw_box(i,j,lvl.corona,tilt);
-		this.draw_box(i,j,lvl.corona_pat.pat,tilt);
-	    } else if (board[i][j] == COL_NEG) {
-		this.draw_box(i,j,lvl.fire,tilt);
-		this.draw_box(i,j,lvl.fire_pat.pat,tilt);
+	    if (board[i][j] != COL_NON) {
+		this.place_box(i,j,board[i][j],tilt);
 	    }
-
 	}
     }
 };
@@ -432,6 +427,16 @@ Board.prototype.r = function (i) {
 };
 Board.prototype.t = function (j) {
     return j*this.dtheta;
+};
+
+Board.prototype.place_box = function (i,j,color,tilt) {
+    if (color == COL_COR) {
+	this.draw_box(i,j,lvl.corona,tilt);
+	this.draw_box(i,j,lvl.corona_pat.pat,tilt);
+    } else {
+	this.draw_box(i,j,lvl.fire,tilt);
+	this.draw_box(i,j,lvl.fire_pat.pat,tilt);
+    }
 };
 Board.prototype.draw_box = function (i,j,fill,tilt) {
     ctx.lineWidth = 0.75;
@@ -551,23 +556,16 @@ ActivePiece.prototype.render = function (offset) {
     if (offset == undefined) {
 	offset = 0;
     }
-    if (this.color == COL_COR) {
-	this.draw_piece(this.i-offset, this.j, lvl.corona);		
-	this.draw_piece(this.i-offset, this.j, lvl.corona_pat.pat);	
-    } else {
-	this.draw_piece(this.i-offset, this.j, lvl.fire);		
-	this.draw_piece(this.i-offset, this.j, lvl.fire_pat.pat);	
-    }
-
+    this.draw_piece(this.i-offset, this.j);
 };
 ActivePiece.prototype.rotate = function () {
     this.rot = realMod(this.rot - 1,4);
 };
-ActivePiece.prototype.draw_piece = function (r,t,color) {
+ActivePiece.prototype.draw_piece = function (r,t) {
     var offsets = piece.get_offsets();
     for (var i in offsets) {
 	var noffr = offsets[i][0], nofft = offsets[i][1];
-	board.draw_box(r+noffr,t+nofft,color);
+	board.place_box(r+noffr,t+nofft,this.color);
     }
 };
 ActivePiece.prototype.get_offsets = function () {
@@ -1208,8 +1206,7 @@ Game.prototype.fall = function () {
 Game.prototype.jetsetter = function (tfrac) {
     ctx.globalAlpha = 1 - tfrac;
     for (var i in this.jettison_me) {
-	board.draw_box(this.jettison_me[i][0],this.jettison_me[i][1],lvl.fire);
-	board.draw_box(this.jettison_me[i][0],this.jettison_me[i][1],lvl.fire_pat.pat);
+	board.place_box(this.jettison_me[i][0],this.jettison_me[i][1],COL_NEG);
     }
     ctx.globalAlpha = 1;
 };
