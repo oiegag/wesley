@@ -763,6 +763,9 @@ Game.prototype.do_clouds = function () {
 };
 Game.prototype.nextlevel = function () {
     this.lvl++;
+    if (parent.kongregate != undefined) {
+	parent.kongregate.stats.submit("Score_Complete",Math.round(100*this.lvl/this.lvls.length));
+    }
     if (this.lvl >= this.lvls.length) {
 	var fiesta = getCookie('fiesta'), newfiesta = Math.round(lvl.timer);
 	
@@ -777,9 +780,6 @@ Game.prototype.nextlevel = function () {
 	    setCookie('fiesta',Math.max(newfiesta,fiesta),30);
 	}
 	this.lvl = this.lvls.length-1;
-    }
-    if (parent.kongregate != undefined) {
-	parent.kongregate.stats.submit("Score_Complete",Math.round(100*this.lvl/(this.lvls.length-1)));
     }
     if (this.lvl >= this.lvls.length-1) {
 	this.save_level();

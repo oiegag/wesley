@@ -148,56 +148,42 @@ var STYLES = {
 var SETTINGS = {
     baby:{
 	sun:'baby',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
 	skip:0,
 	timer:1/0,
 	lines:1
     },
     bigbaby:{
 	sun:'bigbaby',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
 	skip:1,
 	timer:2*60,
 	lines:4
     },
     man:{
 	sun:'man',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
 	skip:2,
 	lines:6,
 	timer:60*3
     },
     bigman:{
 	sun:'bigman',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
 	skip:3,
 	lines:8,
 	timer:200
     },
     giant:{
 	sun:'giant',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
 	skip:4,
 	lines:4,
 	timer:60*3
     },
     biggiant:{
 	sun:'biggiant',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
 	skip:5,
 	lines:10,
 	timer:60*5
     },
     skull:{
 	sun:'skull',
-	corona_nm:'rays_sun',
-	fire_nm:'fire',
 	skip:1,
 	timer:80
     },
@@ -217,7 +203,7 @@ Level.prototype.preload = function () {
     if (this.newsnds == undefined) {
 	this.newsnds = [];
     }
-    this.newpats = this.newpats.concat([['rays_sun',[5,1],[0,1,2,3,4,3,2,1]],['fire',[12,1],[0,0,2,2,4,4,6,6,8,8,10,10]]]);
+    this.newpats = this.newpats.concat([['rays_sun',[5,1],[0,1,2,3,4,3,2,1]],['fire',[12,1],[0,1,2,3,4,5,6,7,8,9,10,11]]]);
     this.newsnds = this.newsnds.concat([['fallen'],['cfallen'],['feast'],['wheelin'],['moondeath'],['shakeout'],['winbing'],['thud'],['ambient','music']]);
 
     this.reset_style();
@@ -369,9 +355,9 @@ Level.prototype.postload = function () {
 
     this.piece_pics = [imgs.piece_l,imgs.piece_t,imgs.piece_cup,imgs.piece_straight,imgs.piece_u];
 
-    this.corona_pat = pats[this.corona_nm];
+    this.corona_pat = pats.rays_sun;
     this.corona_pat.makePattern();
-    this.fire_pat = pats[this.fire_nm];
+    this.fire_pat = pats.fire;
     this.fire_pat.makePattern();
 };
 Level.prototype.background = function (grid) {
