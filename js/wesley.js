@@ -452,7 +452,6 @@ Board.prototype.draw_box = function (i,j,fill,tilt) {
 
     ctx.save();
     ctx.translate(this.ox,this.oy);
-//    ctx.rotate(tilt);
     var tj = this.t(j)+tilt;
     var tj1 = this.t(j+1)+tilt;
     var ro = this.r(i+1)*cvs.width/2;
