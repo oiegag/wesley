@@ -689,6 +689,7 @@ var Game = function () {
     this.always_sfx = true;
     this.invert = true;
     this.soundtrack = [];
+    this.loaded = false;
 
     lvl = new this.lvls[this.lvl]();
     setTimeout(this.callback,FRIENDLY);
@@ -765,12 +766,20 @@ Game.prototype.nextlevel = function () {
     if (this.lvl >= this.lvls.length) {
 	var fiesta = getCookie('fiesta'), newfiesta = Math.round(lvl.timer);
 	
+	if (parent.kongregate != undefined) {
+	    parent.kongregate.stats.submit("Score_Fiesta",newfiesta);
+	}
+
+	
 	if (fiesta == undefined) {
 	    setCookie('fiesta',newfiesta.toString(),30);
 	} else {
-	    setCookie('fiesta',max(newfiesta,fiesta),30);
+	    setCookie('fiesta',Math.max(newfiesta,fiesta),30);
 	}
 	this.lvl = this.lvls.length-1;
+    }
+    if (parent.kongregate != undefined) {
+	parent.kongregate.stats.submit("Score_Complete",Math.round(100*this.lvl/(this.lvls.length-1)));
     }
     if (this.lvl >= this.lvls.length-1) {
 	this.save_level();
@@ -897,6 +906,12 @@ Game.prototype.draw_credits = function () {
 };
 Game.prototype.mainmenu = function () {
     var selections = ['continue','new game','options','credits'];
+
+    if (parent.kongregate != undefined && !this.loaded) {
+	parent.kongregate.stats.submit("loaded",1);
+	this.loaded = true;
+    }
+
     if (this.lvl == this.lvls.length-1) {
 	var fiesta = getCookie('fiesta');
 	if (fiesta != undefined) {

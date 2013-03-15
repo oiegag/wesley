@@ -217,7 +217,7 @@ Level.prototype.preload = function () {
     if (this.newsnds == undefined) {
 	this.newsnds = [];
     }
-    this.newpats = this.newpats.concat([['rays_sun',[5,1],[0,1,2,3,4,3,2,1]],['fire',[12,1],[0,1,2,3,4,5,6,7,8,9,10,11]]]);
+    this.newpats = this.newpats.concat([['rays_sun',[5,1],[0,1,2,3,4,3,2,1]],['fire',[12,1],[0,0,2,2,4,4,6,6,8,8,10,10]]]);
     this.newsnds = this.newsnds.concat([['fallen'],['cfallen'],['feast'],['wheelin'],['moondeath'],['shakeout'],['winbing'],['thud'],['ambient','music']]);
 
     this.reset_style();
@@ -2085,6 +2085,6 @@ Fiesta.prototype.dialogs = [];
 makeScene(Fiesta.prototype.dialogs,
 	  [
 	      {
-		  narrate: "cuando todos es muerte: fiesta."
+		  narrate: "cuando todos estan muertos: fiesta."
 	      }
 	  ], false);
