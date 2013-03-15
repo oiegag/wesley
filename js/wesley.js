@@ -784,7 +784,7 @@ Game.prototype.nextlevel = function () {
     }
     if (this.lvl >= this.lvls.length-1) {
 	this.save_level();
-	game.music = false;
+	this.music = false;
 	this.soundtrack[0].end();
 	this.soundtrack = [];
 	lvl = new this.lvls[this.lvl]();
@@ -1037,12 +1037,34 @@ Game.prototype.callback = function () {
 };
 Game.prototype.loading = function () {
     imgs.loading.render();
+    if (this.began_loading == undefined) {
+	this.began_loading = Date.now();
+    }
+    if ((Date.now() - this.began_loading) > 30*1000) {
+	ctx.fillStyle = MENUBG;
+	ctx.fillRect(0,0,cvs.width,cvs.height);
+	this.textCenter(
+	    ['gentle player,',
+	     'if you are seeing this,',
+	     'you have been waiting at',
+	     'a loading screen for 30',
+	     'seconds. this probably means',
+	     'our cheap webhosting has let',
+	     'us down. feel free to reload,',
+	     'but if you have trouble, you',
+	     'can download a copy of the',
+	     'game to play locally.',
+	     ,'',
+	     'instructions are at',
+	     'compositiongames.com'],25,cvs.width/2,cvs.height*.2,MENUFILL);
+    }
     if(lvl.load()) {
 	lvl.postload();
 	input.reset();
 	this.cloud.update = Date.now();
 	lvl.dialog(false);
 	this.handle_soundtrack();
+	delete this.began_loading;
 	this.gotolater(this.dialog);
     }
     if (this.skip_dialog) {
