@@ -650,23 +650,6 @@ Level.prototype.sun_set = function () {
     }
     return ret;
 };
-Level.prototype.moon_burn = function () {
-    return this.animate_set(imgs[this.sun], [cvs.ox, cvs.oy], [0.35*cvs.width,cvs.oy],1200);
-};
-Level.prototype.moon_burn2 = function () {
-    if (this.moon_death == undefined) {
-	this.moon_death = true;
-	snds.moondeath.play();
-    }
-    var ret = this.dialog_palette_change('deadmoon');
-    if (!ret) {
-	delete this.moon_death;
-    }
-    return ret;
-};
-Level.prototype.moon_burn3 = function () {
-    return this.animate_set(imgs[this.sun],  [0.35*cvs.width,cvs.oy], [cvs.ox, cvs.oy],1200);
-};
 Level.prototype.dialog_palette_change = function (to) {
     var ret = this.interp_palette(to,500);
     this.background(false);
@@ -1748,7 +1731,7 @@ var DoublePuzzle = function (initialstate) {
     if (initialstate) {
 	this.initialstate = initialstate;
     }
-    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['giant',[cvs.ox,cvs.oy]]];
+    this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['giant',[cvs.ox,cvs.oy]],['moonburn',[0,0],[1,24]]];
     this.styletype = 'giant';
     this.settingtype = 'giant';
     this.preload();
@@ -1758,6 +1741,34 @@ var DoublePuzzle = function (initialstate) {
     this.timer = 3*60;
 }
 DoublePuzzle.prototype = new Level();
+DoublePuzzle.prototype.moon_burn = function () {
+    return this.animate_set(imgs[this.sun], [cvs.ox, cvs.oy], [0.35*cvs.width,cvs.oy],1200);
+};
+DoublePuzzle.prototype.moon_burn2 = function () {
+    if (this.moon_death == undefined) {
+	this.moon_death = true;
+	imgs.moonburn.ox = imgs.moon.ox+6;
+	imgs.moonburn.oy = imgs.moon.oy;
+	imgs.moonburn.seq = [1,2,3,4,5,6,7,8,9,10,11,11,12,12,12,12,13,13,14,14,15,15,16,16,17,17,18,18,19,19,20,20,21,21,22,22].concat(23,100)
+	imgs.moonburn.anispeed = 30;
+	this.inscene = [imgs.moonburn, imgs[this.sun]]; // reorder for the burn sequence
+	snds.moondeath.play();
+    }
+    this.background(false);
+
+    this.draw_scene();
+
+    if (imgs.moonburn.seq[imgs.moonburn.seqnum] == 23) {
+	this.inscene = [imgs[this.sun]]; // reorder for the burn sequence
+	delete this.moon_death;
+	return false;
+    } else {
+	return true;
+    }
+};
+DoublePuzzle.prototype.moon_burn3 = function () {
+    return this.animate_set(imgs[this.sun],  [0.35*cvs.width,cvs.oy], [cvs.ox, cvs.oy],1200);
+};
 DoublePuzzle.prototype.gameovertext = "feed wetsley again. he refuses to eat single rings. you may restart the level.";
 DoublePuzzle.prototype.losecondition = function () {
     var now = Date.now();

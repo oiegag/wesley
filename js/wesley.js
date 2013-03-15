@@ -866,8 +866,8 @@ Game.prototype.draw_credits = function () {
     this.textLeft(['mike mcfadden','kate mcfadden','mike and kate'],25,60,100,MENUFILL);
     this.textRight(['code, music','art','story, sound effects'],25,cvs.width-60,100,MENUFILL);
     this.textCenter(['freesound.org field recordings'],25,cvs.width/2,250,MENUFILL);
-    this.textLeft(['strangy','kyster','corsica_s'],25,60,300,MENUFILL);
-    this.textRight(['wind in the grass small town','henne beach waves and seagulls','toronto_chinatown'],25,cvs.width-60,300,MENUFILL);
+    this.textLeft(['strangy','kyster','corsica_s','ryding'],25,60,300,MENUFILL);
+    this.textRight(['wind in the grass small town','henne beach waves and seagulls','toronto_chinatown','storm'],25,cvs.width-60,300,MENUFILL);
     this.textCenter(['thanks to the maintainers', 'of inkscape and fontforge'], 25, cvs.width/2, 450, MENUFILL);
 };
 Game.prototype.mainmenu = function () {
