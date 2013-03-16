@@ -186,7 +186,7 @@ var SETTINGS = {
 	sun:'skull',
 	skip:1,
 	timer:80
-    },
+    }
 };
 
 

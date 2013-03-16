@@ -4,5 +4,6 @@ windows Safari, but Safari does not support Audio elements before 6, so
 it's soundless.
 
 To play it online, go to http://compositiongames.com/wesley/.
-To play it locally, download the source, unzip it, and open index.html in
+To play it locally, download the source, unzip it (in Win 7, that means you
+have to copy the folder out of the zip folder), and open index.html in
 your browser.
