@@ -117,8 +117,16 @@ var Sound = function (trythis,playhook) {
     if (typeof(Audio) == "undefined") { // no html5 sound support at all? then just fail.
 	this.loaded = true;
 	this.error = true;
-    } else {
+    } else if (playhook == "sfx") {
 	this.kid = new SoundFile(this.trylist[this.trying],this);
+    } else {
+	this.onhold = true;
+    }
+};
+Sound.prototype.startloading = function () {
+    if (this.onhold) {
+	this.kid = new SoundFile(this.trylist[this.trying],this);
+	delete this.onhold;
     }
 };
 Sound.prototype.register = function(which,working) {

@@ -204,7 +204,7 @@ Level.prototype.preload = function () {
 	this.newsnds = [];
     }
     this.newpats = this.newpats.concat([['rays_sun',[5,1],[0,1,2,3,4,3,2,1]],['fire',[12,1],[0,1,2,3,4,5,6,7,8,9,10,11]]]);
-    this.newsnds = this.newsnds.concat([['fallen'],['cfallen'],['feast'],['wheelin'],['moondeath'],['shakeout'],['winbing'],['thud'],['ambient','music']]);
+    this.newsnds = this.newsnds.concat([['fallen'],['cfallen'],['feast'],['wheelin'],['winbing'],['thud'],['ambient','music']]);
 
     this.reset_style();
     this.reset_settings();
@@ -260,9 +260,10 @@ Level.prototype.gameovertext = "that won't work. you may restart the level.";
 Level.prototype.startloading = function (these,constructor,where) {
     var loaded = 0;
     for (var i in these) {
-	if (! (these[i][0] in where)) {
-	    where[these[i][0]] = new constructor(these[i][0],these[i][1],these[i][2]);
-	} else if (where[these[i][0]].ready) {
+	var name = these[i][0];
+	if (! (name in where)) {
+	    where[name] = new constructor(these[i][0],these[i][1],these[i][2]);
+	} else if (where[name].ready) {
 	    loaded++;
 	}
     }
@@ -328,7 +329,7 @@ Level.prototype.load = function() {
     // generic load of the newimgs/newpats things
     var iloaded = this.startloading(this.newimgs,Sprite,imgs);
     var ploaded = this.startloading(this.newpats,Pattern,pats);
-    var sloaded = this.startloading(this.newsnds,Sound,snds);
+    this.startloading(this.newsnds,Sound,snds);
     if ((iloaded == this.newimgs.length) && (ploaded == this.newpats.length)) {
 	return true;
     } else {
@@ -1718,6 +1719,7 @@ var DoublePuzzle = function (initialstate) {
 	this.initialstate = initialstate;
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['giant',[cvs.ox,cvs.oy]],['moonburn',[0,0],[1,24]]];
+    this.newsnds = [['moondeath']];
     this.styletype = 'giant';
     this.settingtype = 'giant';
     this.preload();
@@ -1894,6 +1896,7 @@ var CleanupPuzzle = function (initialstate) {
     }
     this.newimgs = [['sky',[cvs.width/2,cvs.height/2]],['stars',[cvs.width/2,cvs.height/2],[1,3]],
 		    ['biggiant',[cvs.ox,cvs.oy]],['skull',[cvs.ox, cvs.oy]]];
+    this.newsnds = [['shakeout']];
     this.styletype = 'biggiant';
     this.settingtype = 'biggiant';
     this.preload();

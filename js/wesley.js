@@ -1036,7 +1036,6 @@ Game.prototype.callback = function () {
     setTimeout(game.callback,FRIENDLY);
 };
 Game.prototype.loading = function () {
-    imgs.loading.render();
     if (this.began_loading == undefined) {
 	this.began_loading = Date.now();
     }
@@ -1058,7 +1057,11 @@ Game.prototype.loading = function () {
 	     'instructions are at',
 	     'compositiongames.com'],25,cvs.width/2,cvs.height*.2,MENUFILL);
     }
+    imgs.loading.render();
     if(lvl.load()) {
+	for (var i in snds) {
+	    snds[i].startloading();
+	}
 	lvl.postload();
 	input.reset();
 	this.cloud.update = Date.now();
