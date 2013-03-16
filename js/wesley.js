@@ -254,6 +254,9 @@ Pattern.prototype.animate = function () {
 Pattern.prototype.makePattern = function () {
     // the image will load early, but make the pattern after the level starts so we
     // can screw with the styling
+    if (this.pats.length > 0) {
+	return;
+    }
     this.last_update = Date.now();
     // all patterns are tiled 1 by n rows by cols
     for (var k = 0 ; k < this.sheet[0] ; k++) {
