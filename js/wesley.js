@@ -788,7 +788,9 @@ Game.prototype.nextlevel = function () {
     if (this.lvl >= this.lvls.length-1) {
 	this.save_level();
 	this.music = false;
-	this.soundtrack[0].end();
+	if(this.soundtrack.length > 0) {
+	    this.soundtrack[0].end();
+	}
 	this.soundtrack = [];
 	lvl = new this.lvls[this.lvl]();
 	this.gotolater(this.transition_to_credits);
@@ -930,7 +932,7 @@ Game.prototype.mainmenu = function () {
     this.do_clouds();
     this.textCenter(selections, 40, cvs.width/2, cvs.height*0.6, MENUFILL);
     this.textCenter(['raising wesley'], 80, cvs.width/2, cvs.height*0.3, MENUFILL);
-    this.textCenter(['use +,=,enter to select'],25,cvs.width/2,cvs.height*0.9, MENUFILL);
+    this.textCenter(['use +, =, enter to select'],25,cvs.width/2,cvs.height*0.9, MENUFILL);
     if (this.lvl == 0) {
 	this.textCenter(['continue'], 40, cvs.width/2,cvs.height*0.6, '#a86');
 	if (this.selected == 0) {
@@ -1161,7 +1163,7 @@ Game.prototype.handle_soundtrack = function () {
     var leveldict = ['sleeping',undefined,undefined, // tutorial and sleeping baby
 		    'wakinbabies',undefined,undefined,'wakinbabies',undefined, // big baby
 		    'mansong',undefined,'mansong',undefined,
-		    'giant',undefined,'giant',undefined,'sleeping'];
+		    'giant',undefined,'giant',undefined,'sleeping','sleeping'];
 
     if (game.soundtrack.length == 0) { // nothing playing
 	if (leveldict[this.lvl] == undefined) {

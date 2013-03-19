@@ -1726,7 +1726,7 @@ var DoublePuzzle = function (initialstate) {
     this.dialog = this.dialogs[0];
     this.failure = false;
     this.lines = 8;
-    this.timer = 3*60;
+    this.timer = 200;
 }
 DoublePuzzle.prototype = new Level();
 DoublePuzzle.prototype.moon_burn = function () {
@@ -1826,6 +1826,7 @@ var TriplePuzzle = function (initialstate) {
     this.settingtype = 'giant';
     this.preload();
     this.dialog = this.dialogs[0];
+    this.timer = 200;
     this.failure = false;
 }
 TriplePuzzle.prototype = new Level();
@@ -2048,9 +2049,7 @@ var Fiesta = function () {
 Fiesta.prototype = new Level();
 Fiesta.prototype.feast = function () {
     var ret = Level.prototype.feast(), now = Date.now();
-    console.log(this.timer);
     this.timer += 20*ret*ret*Math.exp(-(now - this.began)/(180*1000));
-    console.log(this.timer);
     return ret;
 };
 Fiesta.prototype.wincondition = function () {
