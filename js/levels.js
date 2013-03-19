@@ -578,9 +578,10 @@ Level.prototype.animate_rise = function (risewhat,from,to,inthesems) {
 
     if (tfrac >= 1) {
 	delete this.played_wheelie;
+	return false;
+    } else {
+	return true;
     }
-
-    return (tfrac < 1);
 };
 Level.prototype.animate_set = function (setwhat,from,to,inthesems) {
     this.background(false);
@@ -599,9 +600,10 @@ Level.prototype.animate_set = function (setwhat,from,to,inthesems) {
 
     if (tfrac >= 1) {
 	delete this.played_wheelie;
+	return false;
+    } else {
+	return true;
     }
-
-    return (tfrac < 1);
 };
 Level.prototype.draw_scene = function () {
     for (var i in this.inscene) {
@@ -1915,8 +1917,10 @@ CleanupPuzzle.prototype.shakeout = function () {
 	ctx.globalAlpha = 1-tfrac;
 	ctx.fillRect(0,0,cvs.width,cvs.height);
 	ctx.globalAlpha = 1;
+	return true;
+    } else {
+	return false;
     }
-    return (tfrac < 1);
 };
 CleanupPuzzle.prototype.shakenbake = function (changescene) {
     this.background(false);
