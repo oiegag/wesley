@@ -196,7 +196,7 @@ Level.prototype.preload = function () {
     this.newimgs = this.newimgs.concat([['nar_mid'],['nar_head'],['nar_foot'],['moon_head'],['moon_mid'],['moon_foot'],
 					['sun_head'],['sun_mid'],['sun_foot'],['moon',[0.08*cvs.width,0.9*cvs.height],[1,4]],
 				        ['lefty'],['righty'],['piece_t'],['piece_straight'],['piece_l'],['piece_cup'],
-				        ['piece_u'],['objectives',[0,0],[17,1]]]);
+				        ['piece_u'],['objectives',[0,0],[18,1]]]);
     if (this.newpats == undefined) {
 	this.newpats = [];
     }
@@ -881,6 +881,7 @@ SleepingBaby.prototype.enter_tutorial = function (update) {
     this.tutorial_dialog = "use + to rotate the piece.\n \n use < or > to spin the star.\n \n when you like your position, press = to launch.";
     this.dialog_animation = function () {
 	input.reset();
+	game.apply_options();
 	game.gotolater(game.tutorial1);
 	delete this.dialog_animation;
 	return true;
@@ -1049,6 +1050,7 @@ SleepingBabyNeg.prototype.enter_tutorial = function (update) {
     this.tutorial_dialog = "press enter or space to switch between normal pieces and gas pieces, then land the piece on top of the trapped gas to open up a hole.";
     this.dialog_animation = function () {
 	input.reset();
+	game.apply_options();
 	game.gotolater(game.tutorial2);
 	delete this.dialog_animation;
 	return true;

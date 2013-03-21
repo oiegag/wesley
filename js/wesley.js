@@ -787,7 +787,6 @@ Game.prototype.nextlevel = function () {
     }
     if (this.lvl >= this.lvls.length-1) {
 	this.save_level();
-	this.music = false;
 	if(this.soundtrack.length > 0) {
 	    this.soundtrack[0].end();
 	}
@@ -1077,6 +1076,7 @@ Game.prototype.loading = function () {
     }
     if (this.skip_dialog) {
 	this.censor();
+	this.sfx = false;
     }
 };
 Game.prototype.censor = function () {
@@ -1106,9 +1106,7 @@ Game.prototype.dialog_animation = function () {
     }
     if (! lvl.dialog_animation()) {
 	if (! lvl.dialog(true)) {
-	    this.skip_dialog = this.always_skip_dialog;
-	    this.sfx = this.always_sfx;
-	    this.music = this.always_music;
+	    this.apply_options();
 	    lvl.total_lines = lvl.lines;
 	    input.reset();
 	    this.gotolater(this.waitcmd);

@@ -63,20 +63,25 @@ SoundFile.prototype.playagainlater = function () {
     }, false);
 };
 SoundFile.prototype.set_callback = function (what) {
-    this.file.removeEventListener('ended', arguments.callee, false);
-    this.file.addEventListener('ended',function () {
+    this.currentroutine = function () {
 	this.parent.playing = false;
 	what();
 	this.removeEventListener('ended', arguments.callee, false);
 	this.addEventListener('ended',function () {
 	    this.parent.playing = false;
-	}, false);
-    }, false);
+	},false);
+    };
+    this.file.removeEventListener('ended', arguments.callee, false);
+    this.file.addEventListener('ended',this.currentroutine, false);
 };
 SoundFile.prototype.end = function () {
     if (! this.playing || this.error) {
 	return;
     }
+    this.file.removeEventListener('ended', this.currentroutine, false);
+    this.file.addEventListener('ended',function () {
+	this.parent.playing = false;
+    }, false);
     this.file.currentTime = this.file.duration;
 };
 SoundFile.prototype.do_pause = function () {
