@@ -1309,7 +1309,7 @@ makeScene(MoonSucks.prototype.dialogs,
 		  }
 	      },
 	      {
-		  moon: "hey! you! my feeding skills are not what they used to be. i made it gassy, but i am out of pieces. it is getting cranky. use whatever you have to feed it.",
+		  moon: "hey! you! my feeding skills are not what they used to be. i could not make a ring, and i am out of pieces. it is getting cranky. use whatever you have to feed it.",
 		  action: ['moon_set','sun_rise']
 	      }
 	  ], false);;
