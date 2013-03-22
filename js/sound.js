@@ -52,7 +52,7 @@ SoundFile.prototype.load = function () {
     }
 };
 SoundFile.prototype.playagainlater = function () {
-    this.file.removeEventListener('ended', arguments.callee, false);
+    this.file.removeEventListener('ended', this.currentroutine, false);
     this.file.addEventListener('ended',function () {
 	this.parent.playing = false;
 	this.parent.play();
@@ -71,7 +71,7 @@ SoundFile.prototype.set_callback = function (what) {
 	    this.parent.playing = false;
 	},false);
     };
-    this.file.removeEventListener('ended', arguments.callee, false);
+    this.file.removeEventListener('ended', this.currentroutine, false);
     this.file.addEventListener('ended',this.currentroutine, false);
 };
 SoundFile.prototype.end = function () {
@@ -152,7 +152,6 @@ Sound.prototype.register = function(which,working) {
 	    this.error = true;
 	} else {
 	    this.kid = new SoundFile(this.trylist[this.trying],this);
-	    this.kid.load();
 	}
     }
 };
